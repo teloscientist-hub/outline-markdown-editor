@@ -137,7 +137,7 @@ function buildMenu() {
   const focused = BrowserWindow.getFocusedWindow();
   const allWins = BrowserWindow.getAllWindows();
 
-  const send = (channel) => focused?.webContents.send(channel);
+  const send = (channel, ...args) => focused?.webContents.send(channel, ...args);
 
   // Recent Files submenu
   const prefs = readPrefs();
@@ -205,11 +205,29 @@ function buildMenu() {
         { type: 'separator' },
         {
           label: 'Document Info\u2026',
-          accelerator: 'CmdOrCtrl+I',
+          accelerator: 'CmdOrCtrl+Shift+I',
           click: () => send('menu:doc-info'),
         },
         { type: 'separator' },
         isMac ? { role: 'close' } : { role: 'quit' },
+      ],
+    },
+    {
+      label: 'Format',
+      submenu: [
+        { label: 'Heading 1', accelerator: 'CmdOrCtrl+Alt+1', click: () => send('menu:format', 'h1') },
+        { label: 'Heading 2', accelerator: 'CmdOrCtrl+Alt+2', click: () => send('menu:format', 'h2') },
+        { label: 'Heading 3', accelerator: 'CmdOrCtrl+Alt+3', click: () => send('menu:format', 'h3') },
+        { label: 'Heading 4', accelerator: 'CmdOrCtrl+Alt+4', click: () => send('menu:format', 'h4') },
+        { label: 'Heading 5', accelerator: 'CmdOrCtrl+Alt+5', click: () => send('menu:format', 'h5') },
+        { label: 'Heading 6', accelerator: 'CmdOrCtrl+Alt+6', click: () => send('menu:format', 'h6') },
+        { type: 'separator' },
+        { label: 'Bold',          accelerator: 'CmdOrCtrl+B',       click: () => send('menu:format', 'bold') },
+        { label: 'Italic',        accelerator: 'CmdOrCtrl+I',       click: () => send('menu:format', 'italic') },
+        { type: 'separator' },
+        { label: 'Bullet List',   accelerator: 'CmdOrCtrl+Shift+8', click: () => send('menu:format', 'ul') },
+        { label: 'Numbered List', accelerator: 'CmdOrCtrl+Shift+7', click: () => send('menu:format', 'ol') },
+        { label: 'Todo Item',     accelerator: 'CmdOrCtrl+Shift+T', click: () => send('menu:format', 'todo') },
       ],
     },
     {

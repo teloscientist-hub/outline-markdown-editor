@@ -4,6 +4,8 @@ import { WorkspaceLayout } from './components/WorkspaceLayout'
 import { StatusBar } from './components/StatusBar/StatusBar'
 import { Preferences } from './components/Preferences/Preferences'
 import { DocumentInfo } from './components/DocumentInfo/DocumentInfo'
+import { applyFormat } from './formatBus'
+import type { FormatType } from './formatBus'
 import { useDocumentStore } from './store/documentStore'
 import './App.css'
 
@@ -33,6 +35,7 @@ declare global {
       onMenuAllPanes:      (cb: () => void) => void
       onMenuPreferences:   (cb: () => void) => void
       onMenuDocInfo:       (cb: () => void) => void
+      onMenuFormat:        (cb: (type: FormatType) => void) => void
       onOpenFile:          (cb: (filePath: string) => void) => void
       removeAllListeners:  (channel: string) => void
     }
@@ -106,10 +109,11 @@ export function App() {
     window.electronAPI.onMenuAllPanes(showAllPanes)
     window.electronAPI.onMenuPreferences(() => setShowPreferences(true))
     window.electronAPI.onMenuDocInfo(() => setShowDocInfo(true))
+    window.electronAPI.onMenuFormat((type) => applyFormat(type))
     return () => {
       ['menu:open','menu:save','menu:save-as',
        'menu:toggle-outline','menu:toggle-markdown','menu:toggle-display',
-       'menu:all-panes','menu:preferences','menu:doc-info']
+       'menu:all-panes','menu:preferences','menu:doc-info','menu:format']
         .forEach(c => window.electronAPI?.removeAllListeners(c))
     }
   }, [filePath, content, handleOpen, handleSave, handleSaveAs,
@@ -135,7 +139,8 @@ export function App() {
       if (e.key === 's' &&  e.shiftKey) { e.preventDefault(); handleSaveAs() }
       if (e.key === 'o') { e.preventDefault(); handleOpen() }
       if (e.key === ',') { e.preventDefault(); setShowPreferences(true) }
-      if (e.key === 'i') { e.preventDefault(); setShowDocInfo(true) }
+      if (e.key === 'i' && !e.shiftKey) { /* handled by CM keymap (italic) */ }
+      if (e.key === 'i' &&  e.shiftKey) { e.preventDefault(); setShowDocInfo(true) }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)

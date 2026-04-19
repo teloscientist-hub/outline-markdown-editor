@@ -1,4 +1,4 @@
-import { useEffect, useRef, useMemo, useCallback } from 'react'
+import { useEffect, useRef, useMemo, useCallback, useState } from 'react'
 import { EditorView, lineNumbers, keymap, Decoration, ViewPlugin } from '@codemirror/view'
 import type { ViewUpdate, DecorationSet } from '@codemirror/view'
 import { RangeSetBuilder } from '@codemirror/state'
@@ -9,6 +9,10 @@ import { defaultKeymap, historyKeymap, history } from '@codemirror/commands'
 import { useDocumentStore } from '../../store/documentStore'
 import { computeHiddenLines, getHeadingAtLine, getHeadingForLine } from '../../model/documentModel'
 import { publishScroll, subscribeScroll } from '../../scrollSync'
+import { applyFormatting } from '../../formatting'
+import { setFormatter, clearFormatter } from '../../formatBus'
+import type { FormatType } from '../../formatBus'
+import { FormatBubble } from '../FormatBubble/FormatBubble'
 import './MarkdownPane.css'
 
 // ── MarkEdit-like highlight style ─────────────────────────────────────────────
@@ -62,10 +66,6 @@ const markDimmerPlugin = ViewPlugin.fromClass(
 )
 
 // ── Hidden-lines plugin ───────────────────────────────────────────────────────
-// Reads a ref containing the Set<number> of 0-based hidden line indices
-// (same output as computeHiddenLines used by DisplayPane) and stamps
-// cm-line-hidden on those lines.  This keeps the markdown pane in perfect
-// sync with the outline and display panes without using CodeMirror folds.
 function makeHiddenLinesPlugin(getHidden: () => Set<number>) {
   const hiddenLine = Decoration.line({ class: 'cm-line-hidden' })
   return ViewPlugin.fromClass(
@@ -73,8 +73,6 @@ function makeHiddenLinesPlugin(getHidden: () => Set<number>) {
       decorations: DecorationSet
       constructor(view: EditorView) { this.decorations = this.build(view) }
       update(update: ViewUpdate) {
-        // Rebuild on doc change, viewport change, or any transaction
-        // (a no-op transaction is dispatched when fold state changes)
         if (update.docChanged || update.viewportChanged || update.transactions.length > 0)
           this.decorations = this.build(update.view)
       }
@@ -83,7 +81,7 @@ function makeHiddenLinesPlugin(getHidden: () => Set<number>) {
         if (hidden.size === 0) return Decoration.none
         const builder = new RangeSetBuilder<Decoration>()
         for (let i = 1; i <= view.state.doc.lines; i++) {
-          if (hidden.has(i - 1)) {          // hidden uses 0-based; CM uses 1-based
+          if (hidden.has(i - 1)) {
             const line = view.state.doc.line(i)
             builder.add(line.from, line.from, hiddenLine)
           }
@@ -151,9 +149,10 @@ export function MarkdownPane() {
   const activeHeadingRef  = useRef<string | null>(null)
   const suppressScrollRef = useRef(false)
   const suppressTimerRef  = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const hiddenLinesRef    = useRef<Set<number>>(new Set())
 
-  // hiddenLinesRef is read by the plugin synchronously; updated each render
-  const hiddenLinesRef = useRef<Set<number>>(new Set())
+  // Bubble: null = hidden, {x,y} = visible at viewport position
+  const [bubbleCoords, setBubbleCoords] = useState<{ x: number; y: number } | null>(null)
 
   const {
     content,
@@ -164,12 +163,10 @@ export function MarkdownPane() {
     moveSectionUp, moveSectionDown,
   } = useDocumentStore()
 
-  // Compute hidden lines exactly the same way the display pane does
   const hiddenLines = useMemo(
     () => computeHiddenLines(content, headings, foldedIds, depthMode, headingsOnlyMode),
     [content, headings, foldedIds, depthMode, headingsOnlyMode]
   )
-  // Synchronously update ref so plugin always reads the latest value
   hiddenLinesRef.current = hiddenLines
 
   const structuralKeymap = useCallback(() => keymap.of([
@@ -206,6 +203,21 @@ export function MarkdownPane() {
       },
     },
   ]), [promoteSectionById, demoteSectionById, moveSectionUp, moveSectionDown])
+
+  // ── Format keymap (in-editor shortcuts) ──────────────────────────────────
+  const formatKeymap = useCallback(() => keymap.of([
+    { key: 'Mod-b', preventDefault: true, run: (v) => { applyFormatting(v, 'bold');   return true } },
+    { key: 'Mod-i', preventDefault: true, run: (v) => { applyFormatting(v, 'italic'); return true } },
+    { key: 'Mod-Alt-1', preventDefault: true, run: (v) => { applyFormatting(v, 'h1'); return true } },
+    { key: 'Mod-Alt-2', preventDefault: true, run: (v) => { applyFormatting(v, 'h2'); return true } },
+    { key: 'Mod-Alt-3', preventDefault: true, run: (v) => { applyFormatting(v, 'h3'); return true } },
+    { key: 'Mod-Alt-4', preventDefault: true, run: (v) => { applyFormatting(v, 'h4'); return true } },
+    { key: 'Mod-Alt-5', preventDefault: true, run: (v) => { applyFormatting(v, 'h5'); return true } },
+    { key: 'Mod-Alt-6', preventDefault: true, run: (v) => { applyFormatting(v, 'h6'); return true } },
+    { key: 'Mod-Shift-8', preventDefault: true, run: (v) => { applyFormatting(v, 'ul');   return true } },
+    { key: 'Mod-Shift-7', preventDefault: true, run: (v) => { applyFormatting(v, 'ol');   return true } },
+    { key: 'Mod-Shift-t', preventDefault: true, run: (v) => { applyFormatting(v, 'todo'); return true } },
+  ]), [])
 
   // ── Create editor (once) ──────────────────────────────────────────────────
   useEffect(() => {
@@ -264,6 +276,7 @@ export function MarkdownPane() {
         markEditTheme,
         keymap.of([...defaultKeymap, ...historyKeymap]),
         structuralKeymap(),
+        formatKeymap(),
         scrollSyncExt,
         EditorView.updateListener.of((update: ViewUpdate) => {
           if (update.docChanged) {
@@ -278,6 +291,21 @@ export function MarkdownPane() {
               activeHeadingRef.current = found.id
               useDocumentStore.getState().setActiveHeading(found.id)
             }
+
+            // ── Bubble: show on non-empty selection ────────────────────────
+            if (!sel.empty) {
+              const coords = update.view.coordsAtPos(sel.from)
+              if (coords) {
+                const editorRect = editorRef.current?.getBoundingClientRect()
+                const bubbleX = editorRect
+                  ? editorRect.left + editorRect.width / 2
+                  : coords.left
+                // Schedule after paint so layout is complete
+                requestAnimationFrame(() => setBubbleCoords({ x: bubbleX, y: coords.top }))
+              }
+            } else {
+              setBubbleCoords(null)
+            }
           }
         }),
         EditorView.lineWrapping,
@@ -285,19 +313,25 @@ export function MarkdownPane() {
       parent: editorRef.current,
     })
     viewRef.current = view
-    return () => { view.destroy(); viewRef.current = null }
+
+    // Register this view's formatter with the format bus
+    setFormatter((type: FormatType) => applyFormatting(view, type))
+
+    return () => {
+      clearFormatter()
+      view.destroy()
+      viewRef.current = null
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // ── Trigger plugin refresh when fold/visibility state changes ─────────────
-  // The plugin re-reads hiddenLinesRef on any transaction; dispatch a no-op
-  // to force it to refresh when fold state changes without a doc edit.
   useEffect(() => {
     const view = viewRef.current
     if (!view) return
     view.dispatch({ effects: [] })
     view.requestMeasure()
-  }, [hiddenLines])   // hiddenLines changes when foldedIds / depthMode / headings change
+  }, [hiddenLines])
 
   // ── Sync content from outside ─────────────────────────────────────────────
   useEffect(() => {
@@ -357,6 +391,16 @@ export function MarkdownPane() {
   return (
     <div className="markdown-pane">
       <div ref={editorRef} className="cm-editor-wrapper" />
+      {bubbleCoords && (
+        <FormatBubble
+          x={bubbleCoords.x}
+          y={bubbleCoords.y}
+          onFormat={(type) => {
+            const view = viewRef.current
+            if (view) applyFormatting(view, type)
+          }}
+        />
+      )}
     </div>
   )
 }

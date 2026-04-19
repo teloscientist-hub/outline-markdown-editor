@@ -31,6 +31,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onMenuAllPanes:      (cb) => ipcRenderer.on('menu:all-panes',      () => cb()),
   onMenuPreferences:   (cb) => ipcRenderer.on('menu:preferences',    () => cb()),
   onMenuDocInfo:       (cb) => ipcRenderer.on('menu:doc-info',       () => cb()),
+  onMenuFormat:        (cb) => ipcRenderer.on('menu:format', (_event, type) => cb(type)),
 
   // OS-level file open
   onOpenFile: (cb) => ipcRenderer.on('open-file', (_event, filePath) => cb(filePath)),
