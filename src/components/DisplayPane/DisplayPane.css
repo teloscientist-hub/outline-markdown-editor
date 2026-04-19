@@ -1,0 +1,99 @@
+.display-pane {
+  height: 100%;
+  overflow-y: auto;
+  background: var(--color-display-bg);
+  border-left: 1px solid var(--color-border);
+}
+
+.display-content {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 32px 40px 64px;
+  color: var(--color-text);
+  font-family: var(--font-prose);
+  font-size: 15px;
+  line-height: 1.75;
+}
+
+/* Headings */
+.display-content .display-heading {
+  cursor: pointer;
+  transition: color 0.1s;
+}
+.display-content .display-heading:hover {
+  color: var(--color-active);
+}
+
+.display-content h1 { font-size: 2em; margin: 1.5em 0 0.5em; font-weight: 700; border-bottom: 1px solid var(--color-border); padding-bottom: 0.3em; }
+.display-content h2 { font-size: 1.5em; margin: 1.4em 0 0.4em; font-weight: 600; }
+.display-content h3 { font-size: 1.25em; margin: 1.3em 0 0.4em; font-weight: 600; }
+.display-content h4 { font-size: 1em; margin: 1.2em 0 0.3em; font-weight: 600; }
+.display-content h5 { font-size: 0.9em; margin: 1.1em 0 0.3em; font-weight: 600; }
+.display-content h6 { font-size: 0.85em; margin: 1em 0 0.3em; font-weight: 600; color: var(--color-text-muted); }
+
+/* Prose */
+.display-content p { margin: 0.8em 0; }
+.display-content strong { font-weight: 600; }
+.display-content em { font-style: italic; }
+.display-content a { color: var(--color-active); text-decoration: none; }
+.display-content a:hover { text-decoration: underline; }
+
+/* Lists */
+.display-content ul, .display-content ol { padding-left: 1.8em; margin: 0.6em 0; }
+.display-content li { margin: 0.25em 0; }
+
+/* Code */
+.display-content code {
+  font-family: var(--font-mono);
+  font-size: 0.87em;
+  background: var(--color-code-bg);
+  padding: 0.15em 0.4em;
+  border-radius: 4px;
+}
+.display-content pre {
+  background: var(--color-code-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 16px;
+  overflow-x: auto;
+  margin: 1em 0;
+}
+.display-content pre code {
+  background: none;
+  padding: 0;
+  font-size: 0.9em;
+}
+
+/* Blockquote */
+.display-content blockquote {
+  border-left: 3px solid var(--color-active-border);
+  margin: 1em 0;
+  padding: 0.5em 0 0.5em 1.2em;
+  color: var(--color-text-muted);
+}
+
+/* Table */
+.display-content table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1em 0;
+  font-size: 0.93em;
+}
+.display-content th, .display-content td {
+  border: 1px solid var(--color-border);
+  padding: 8px 12px;
+  text-align: left;
+}
+.display-content th { background: var(--color-code-bg); font-weight: 600; }
+
+/* Horizontal rule */
+.display-content hr { border: none; border-top: 1px solid var(--color-border); margin: 2em 0; }
+
+/* App icon in welcome doc */
+.display-content img {
+  display: block;
+  margin: 0 0 8px 0;
+  border-radius: 22px;
+  width: 80px;
+  height: 80px;
+}

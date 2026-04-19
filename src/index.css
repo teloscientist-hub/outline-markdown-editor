@@ -1,0 +1,182 @@
+/* ==========================================
+   CSS Custom Properties — Design Tokens
+   ========================================== */
+:root {
+  color-scheme: light dark;
+
+  /* Light mode */
+  --color-bg: #f5f5f4;
+  --color-toolbar-bg: #ececec;
+  --color-sidebar-bg: #f0eff0;
+  --color-editor-bg: #ffffff;
+  --color-editor-gutter: #f5f5f4;
+  --color-editor-active-line: rgba(0,0,0,0.035);
+  --color-editor-active-gutter: rgba(0,0,0,0.05);
+  --color-display-bg: #fafaf9;
+  --color-code-bg: #f0f0f0;
+  --color-input-bg: #ffffff;
+
+  --color-text: #1a1a1a;
+  --color-text-muted: #777;
+  --color-border: #d8d8d8;
+  --color-hover: rgba(0,0,0,0.06);
+  --color-selection: rgba(0,100,255,0.15);
+
+  --color-active: #0071e3;
+  --color-active-bg: rgba(0,113,227,0.1);
+  --color-active-border: rgba(0,113,227,0.3);
+
+  --color-statusbar-bg: #e8e8e8;
+
+  /* MarkEdit-style syntax colors (light) */
+  --me-h1: #1C1C1E;
+  --me-h2: #1C1C1E;
+  --me-h3: #1C1C1E;
+  --me-h4: #3A3A3C;
+  --me-mark: #AEAEB2;
+  --me-strike: #8E8E93;
+  --me-link: #007AFF;
+  --me-code: #9B2335;
+  --me-code-bg: rgba(0, 0, 0, 0.055);
+  --me-quote: #6C6C70;
+
+  --font-prose: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'SF Mono', 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #1c1c1e;
+    --color-toolbar-bg: #2c2c2e;
+    --color-sidebar-bg: #252527;
+    --color-editor-bg: #1e1e1e;
+    --color-editor-gutter: #252525;
+    --color-editor-active-line: rgba(255,255,255,0.04);
+    --color-editor-active-gutter: rgba(255,255,255,0.06);
+    --color-display-bg: #1c1c1e;
+    --color-code-bg: #2a2a2c;
+    --color-input-bg: #3a3a3c;
+
+    --color-text: #e5e5e7;
+    --color-text-muted: #8e8e93;
+    --color-border: #38383a;
+    --color-hover: rgba(255,255,255,0.07);
+    --color-selection: rgba(0,113,227,0.3);
+
+    --color-active: #0a84ff;
+    --color-active-bg: rgba(10,132,255,0.15);
+    --color-active-border: rgba(10,132,255,0.35);
+    --color-statusbar-bg: #1c1c1e;
+
+  /* MarkEdit-style syntax colors (dark) */
+  --me-h1: #F2F2F7;
+  --me-h2: #F2F2F7;
+  --me-h3: #F2F2F7;
+  --me-h4: #C7C7CC;
+  --me-mark: #48484A;
+  --me-strike: #636366;
+  --me-link: #0A84FF;
+  --me-code: #FF9F0A;
+  --me-code-bg: rgba(255, 255, 255, 0.07);
+  --me-quote: #8E8E93;
+  }
+}
+
+/* ==========================================
+   Reset & Base
+   ========================================== */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-prose);
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font-family: inherit;
+}
+
+/* ==========================================
+   Explicit theme overrides (override OS)
+   ========================================== */
+html.theme-light {
+  --color-bg: #f5f5f4;
+  --color-toolbar-bg: #ececec;
+  --color-sidebar-bg: #f0eff0;
+  --color-editor-bg: #ffffff;
+  --color-editor-gutter: #f5f5f4;
+  --color-editor-active-line: rgba(0,0,0,0.035);
+  --color-editor-active-gutter: rgba(0,0,0,0.05);
+  --color-display-bg: #fafaf9;
+  --color-code-bg: #f0f0f0;
+  --color-input-bg: #ffffff;
+  --color-text: #1a1a1a;
+  --color-text-muted: #777;
+  --color-border: #d8d8d8;
+  --color-hover: rgba(0,0,0,0.06);
+  --color-selection: rgba(0,100,255,0.15);
+  --color-active: #0071e3;
+  --color-active-bg: rgba(0,113,227,0.1);
+  --color-active-border: rgba(0,113,227,0.3);
+  --color-statusbar-bg: #e8e8e8;
+
+  /* MarkEdit-style syntax colors (light) */
+  --me-h1: #1C1C1E;
+  --me-h2: #1C1C1E;
+  --me-h3: #1C1C1E;
+  --me-h4: #3A3A3C;
+  --me-mark: #AEAEB2;
+  --me-strike: #8E8E93;
+  --me-link: #007AFF;
+  --me-code: #9B2335;
+  --me-code-bg: rgba(0, 0, 0, 0.055);
+  --me-quote: #6C6C70;
+  color-scheme: light;
+}
+
+html.theme-dark {
+  --color-bg: #1c1c1e;
+  --color-toolbar-bg: #2c2c2e;
+  --color-sidebar-bg: #252527;
+  --color-editor-bg: #1e1e1e;
+  --color-editor-gutter: #252525;
+  --color-editor-active-line: rgba(255,255,255,0.04);
+  --color-editor-active-gutter: rgba(255,255,255,0.06);
+  --color-display-bg: #1c1c1e;
+  --color-code-bg: #2a2a2c;
+  --color-input-bg: #3a3a3c;
+  --color-text: #e5e5e7;
+  --color-text-muted: #8e8e93;
+  --color-border: #38383a;
+  --color-hover: rgba(255,255,255,0.07);
+  --color-selection: rgba(0,113,227,0.3);
+  --color-active: #0a84ff;
+  --color-active-bg: rgba(10,132,255,0.15);
+  --color-active-border: rgba(10,132,255,0.35);
+  --color-statusbar-bg: #1c1c1e;
+
+  /* MarkEdit-style syntax colors (dark) */
+  --me-h1: #F2F2F7;
+  --me-h2: #F2F2F7;
+  --me-h3: #F2F2F7;
+  --me-h4: #C7C7CC;
+  --me-mark: #48484A;
+  --me-strike: #636366;
+  --me-link: #0A84FF;
+  --me-code: #FF9F0A;
+  --me-code-bg: rgba(255, 255, 255, 0.07);
+  --me-quote: #8E8E93;
+  color-scheme: dark;
+}

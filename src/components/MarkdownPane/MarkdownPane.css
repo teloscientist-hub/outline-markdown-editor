@@ -1,0 +1,17 @@
+.markdown-pane {
+  height: 100%;
+  overflow: hidden;
+  background: var(--color-editor-bg);
+  display: flex;
+  flex-direction: column;
+}
+
+.cm-editor-wrapper {
+  flex: 1;
+  height: 100%;
+  overflow: hidden;
+}
+
+.cm-editor-wrapper .cm-editor {
+  height: 100%;
+}

@@ -1,0 +1,30 @@
+.resize-handle {
+  width: 6px;
+  flex-shrink: 0;
+  cursor: col-resize;
+  position: relative;
+  z-index: 10;
+  background: transparent;
+  transition: background 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.resize-handle:hover,
+.resize-handle:active {
+  background: var(--color-active-bg);
+}
+
+.resize-handle-line {
+  width: 1px;
+  height: 100%;
+  background: var(--color-border);
+  transition: background 0.15s, width 0.15s;
+}
+
+.resize-handle:hover .resize-handle-line,
+.resize-handle:active .resize-handle-line {
+  width: 2px;
+  background: var(--color-active);
+}

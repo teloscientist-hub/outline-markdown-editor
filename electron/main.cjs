@@ -1,0 +1,359 @@
+'use strict';
+const { app, BrowserWindow, ipcMain, dialog, Menu, shell } = require('electron');
+const path = require('path');
+const fs = require('fs');
+
+const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
+
+// ── Per-window data ──────────────────────────────────────────────────────────
+const windowData = new Map();
+
+// ── Preferences ──────────────────────────────────────────────────────────────
+const PREFS_PATH = path.join(app.getPath('userData'), 'preferences.json');
+const MAX_RECENT = 10;
+
+function readPrefs() {
+  try {
+    const p = JSON.parse(fs.readFileSync(PREFS_PATH, 'utf-8'));
+    // Migrate legacy recentFile → recentFiles
+    if (!p.recentFiles) {
+      p.recentFiles = p.recentFile ? [p.recentFile] : [];
+      delete p.recentFile;
+    }
+    return p;
+  } catch {
+    return { startup: 'readme', recentFiles: [] };
+  }
+}
+
+function writePrefs(prefs) {
+  try { fs.writeFileSync(PREFS_PATH, JSON.stringify(prefs, null, 2), 'utf-8'); }
+  catch {}
+}
+
+function pushRecentFile(filePath) {
+  if (!filePath) return;
+  const prefs = readPrefs();
+  const files = (prefs.recentFiles || []).filter(f => f !== filePath);
+  files.unshift(filePath);
+  prefs.recentFiles = files.slice(0, MAX_RECENT);
+  writePrefs(prefs);
+  buildMenu();
+}
+
+// ── Window creation ───────────────────────────────────────────────────────────
+function createWindow(filePath = null) {
+  const win = new BrowserWindow({
+    width: 1400, height: 900, minWidth: 800, minHeight: 600,
+    titleBarStyle: 'hiddenInset',
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.cjs'),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+    backgroundColor: '#1e1e1e',
+    show: false,
+  });
+
+  windowData.set(win.id, { filePath });
+
+  if (isDev) {
+    win.loadURL('http://localhost:5173');
+  } else {
+    win.loadFile(path.join(__dirname, '../dist/index.html'));
+  }
+
+  win.once('ready-to-show', () => {
+    win.show();
+    buildMenu();
+  });
+
+  win.on('page-title-updated', () => buildMenu());
+  win.on('focus', () => buildMenu());
+  win.on('blur',  () => buildMenu());
+
+  win.on('closed', () => {
+    windowData.delete(win.id);
+    buildMenu();
+  });
+
+  return win;
+}
+
+// ── Open a recent file (reuse empty window or make a new one) ─────────────────
+function openRecentFile(filePath) {
+  if (!filePath || !fs.existsSync(filePath)) return;
+  const focused = BrowserWindow.getFocusedWindow();
+  // Prefer the currently focused window if it has no file (untouched new window)
+  if (focused) {
+    const d = windowData.get(focused.id);
+    if (d && !d.filePath) {
+      windowData.set(focused.id, { filePath });
+      focused.webContents.send('open-file', filePath);
+      return;
+    }
+  }
+  // Find any empty window
+  const emptyWin = BrowserWindow.getAllWindows().find(w => {
+    const d = windowData.get(w.id);
+    return d && !d.filePath;
+  });
+  if (emptyWin) {
+    windowData.set(emptyWin.id, { filePath });
+    emptyWin.webContents.send('open-file', filePath);
+    if (emptyWin.isMinimized()) emptyWin.restore();
+    emptyWin.focus();
+  } else {
+    createWindow(filePath);
+  }
+}
+
+// ── macOS open-file ────────────────────────────────────────────────────────────
+let pendingOpenFile = null;
+
+app.on('open-file', (event, filePath) => {
+  event.preventDefault();
+  if (app.isReady()) {
+    const emptyWin = BrowserWindow.getAllWindows().find(w => {
+      const d = windowData.get(w.id);
+      return d && !d.filePath;
+    });
+    if (emptyWin) {
+      windowData.set(emptyWin.id, { filePath });
+      emptyWin.webContents.send('open-file', filePath);
+      if (emptyWin.isMinimized()) emptyWin.restore();
+      emptyWin.focus();
+    } else {
+      createWindow(filePath);
+    }
+  } else {
+    pendingOpenFile = filePath;
+  }
+});
+
+// ── Menu ──────────────────────────────────────────────────────────────────────
+function buildMenu() {
+  const isMac = process.platform === 'darwin';
+  const focused = BrowserWindow.getFocusedWindow();
+  const allWins = BrowserWindow.getAllWindows();
+
+  const send = (channel) => focused?.webContents.send(channel);
+
+  // Recent Files submenu
+  const prefs = readPrefs();
+  const recentFiles = prefs.recentFiles || [];
+  const recentSubmenu = recentFiles.length
+    ? [
+        ...recentFiles.map((fp, i) => ({
+          label: `${i + 1}. ${path.basename(fp)}`,
+          sublabel: fp,
+          click: () => openRecentFile(fp),
+        })),
+        { type: 'separator' },
+        {
+          label: 'Clear Recent Files',
+          click: () => {
+            const p = readPrefs(); p.recentFiles = []; writePrefs(p); buildMenu();
+          },
+        },
+      ]
+    : [{ label: 'No Recent Files', enabled: false }];
+
+  const template = [
+    ...(isMac ? [{
+      role: 'appMenu',
+      submenu: [
+        { role: 'about' },
+        { type: 'separator' },
+        {
+          label: 'Preferences\u2026',
+          accelerator: 'Cmd+,',
+          click: () => send('menu:preferences'),
+        },
+        { type: 'separator' },
+        { role: 'services' },
+        { type: 'separator' },
+        { role: 'hide' }, { role: 'hideOthers' }, { role: 'unhide' },
+        { type: 'separator' },
+        { role: 'quit' },
+      ],
+    }] : []),
+    {
+      label: 'File',
+      submenu: [
+        {
+          label: 'New Window',
+          accelerator: 'CmdOrCtrl+N',
+          click: () => {
+            const p = readPrefs();
+            if (p.startup === 'blank') {
+              const w = createWindow(null);
+              windowData.set(w.id, { filePath: null, forceBlank: true });
+            } else {
+              createWindow(null);
+            }
+          },
+        },
+        { label: 'Open\u2026',     accelerator: 'CmdOrCtrl+O',       click: () => send('menu:open') },
+        {
+          label: 'Open Recent',
+          submenu: recentSubmenu,
+        },
+        { type: 'separator' },
+        { label: 'Save',          accelerator: 'CmdOrCtrl+S',       click: () => send('menu:save') },
+        { label: 'Save As\u2026', accelerator: 'CmdOrCtrl+Shift+S', click: () => send('menu:save-as') },
+        { type: 'separator' },
+        {
+          label: 'Document Info\u2026',
+          accelerator: 'CmdOrCtrl+I',
+          click: () => send('menu:doc-info'),
+        },
+        { type: 'separator' },
+        isMac ? { role: 'close' } : { role: 'quit' },
+      ],
+    },
+    {
+      label: 'View',
+      submenu: [
+        { label: 'Toggle Outline',  accelerator: 'CmdOrCtrl+1', click: () => send('menu:toggle-outline') },
+        { label: 'Toggle Markdown', accelerator: 'CmdOrCtrl+2', click: () => send('menu:toggle-markdown') },
+        { label: 'Toggle Display',  accelerator: 'CmdOrCtrl+3', click: () => send('menu:toggle-display') },
+        { type: 'separator' },
+        { label: 'All Panes',       accelerator: 'CmdOrCtrl+0', click: () => send('menu:all-panes') },
+        { type: 'separator' },
+        { role: 'reload' },
+        { role: 'toggleDevTools' },
+      ],
+    },
+    { role: 'editMenu' },
+    {
+      label: 'Window',
+      submenu: [
+        { role: 'minimize' },
+        { role: 'zoom' },
+        ...(isMac ? [{ role: 'front' }, { type: 'separator' }] : [{ type: 'separator' }]),
+        ...allWins.map(win => ({
+          label: win.getTitle() || 'Untitled \u2014 Outline Markdown Editor',
+          type: 'checkbox',
+          checked: win.id === focused?.id,
+          click: () => { if (win.isMinimized()) win.restore(); win.focus(); },
+        })),
+      ],
+    },
+  ];
+
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+}
+
+// ── IPC: synchronous initial-info ─────────────────────────────────────────────
+ipcMain.on('app:get-initial-info-sync', (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  const data = windowData.get(win?.id);
+  const prefs = readPrefs();
+
+  if (data?.filePath) {
+    try {
+      const content = fs.readFileSync(data.filePath, 'utf-8');
+      event.returnValue = { type: 'file', filePath: data.filePath, content, prefs };
+      return;
+    } catch {}
+  }
+
+  if (data?.forceBlank) {
+    event.returnValue = { type: 'blank', filePath: null, content: '', prefs };
+    return;
+  }
+
+  if (prefs.startup === 'blank') {
+    event.returnValue = { type: 'blank', filePath: null, content: '', prefs };
+  } else if (prefs.startup === 'recent' && prefs.recentFiles?.length) {
+    try {
+      const fp = prefs.recentFiles[0];
+      const content = fs.readFileSync(fp, 'utf-8');
+      event.returnValue = { type: 'file', filePath: fp, content, prefs };
+    } catch {
+      event.returnValue = { type: 'readme', filePath: null, content: null, prefs };
+    }
+  } else {
+    event.returnValue = { type: 'readme', filePath: null, content: null, prefs };
+  }
+});
+
+// ── IPC: preferences ──────────────────────────────────────────────────────────
+ipcMain.handle('prefs:get', () => readPrefs());
+ipcMain.handle('prefs:set', (_, prefs) => writePrefs(prefs));
+
+// ── IPC: window file path update ──────────────────────────────────────────────
+ipcMain.handle('window:set-file-path', (event, filePath) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  if (win) {
+    windowData.set(win.id, { ...windowData.get(win.id), filePath });
+    if (filePath) pushRecentFile(filePath);
+  }
+});
+
+// ── IPC: file stat (for Document Info) ───────────────────────────────────────
+ipcMain.handle('fs:stat', (_, filePath) => {
+  if (!filePath) return null;
+  try {
+    const s = fs.statSync(filePath);
+    return { created: s.birthtime.toISOString(), modified: s.mtime.toISOString(), size: s.size };
+  } catch { return null; }
+});
+
+// ── IPC: file dialogs ─────────────────────────────────────────────────────────
+ipcMain.handle('dialog:open', async (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  const result = await dialog.showOpenDialog(win, {
+    filters: [{ name: 'Markdown', extensions: ['md', 'markdown', 'txt'] }],
+    properties: ['openFile'],
+  });
+  if (result.canceled || !result.filePaths.length) return null;
+  const filePath = result.filePaths[0];
+  const content = fs.readFileSync(filePath, 'utf-8');
+  return { filePath, content };
+});
+
+ipcMain.handle('dialog:save', async (event, { filePath, content }) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  let savePath = filePath;
+  if (!savePath) {
+    const result = await dialog.showSaveDialog(win, {
+      filters: [{ name: 'Markdown', extensions: ['md'] }],
+      defaultPath: 'untitled.md',
+    });
+    if (result.canceled) return null;
+    savePath = result.filePath;
+  }
+  fs.writeFileSync(savePath, content, 'utf-8');
+  return savePath;
+});
+
+ipcMain.handle('dialog:save-as', async (event, { content }) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  const result = await dialog.showSaveDialog(win, {
+    filters: [{ name: 'Markdown', extensions: ['md'] }],
+    defaultPath: 'untitled.md',
+  });
+  if (result.canceled) return null;
+  fs.writeFileSync(result.filePath, content, 'utf-8');
+  return result.filePath;
+});
+
+ipcMain.handle('fs:read', (_, filePath) => fs.readFileSync(filePath, 'utf-8'));
+
+// ── App lifecycle ─────────────────────────────────────────────────────────────
+app.whenReady().then(() => {
+  buildMenu();
+  const fileToOpen = pendingOpenFile;
+  pendingOpenFile = null;
+
+  const cliFile = process.argv.find(
+    (a, i) => i >= (isDev ? 2 : 1) && a !== '.' && fs.existsSync(a)
+  ) || null;
+
+  createWindow(fileToOpen || cliFile || null);
+});
+
+app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
+app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });

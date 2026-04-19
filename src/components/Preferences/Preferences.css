@@ -1,0 +1,106 @@
+.prefs-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(2px);
+}
+
+.prefs-dialog {
+  background: var(--color-panel-bg, #2c2c2e);
+  border: 1px solid var(--color-border, rgba(255,255,255,0.1));
+  border-radius: 12px;
+  width: 420px;
+  max-width: 90vw;
+  box-shadow: 0 24px 48px rgba(0,0,0,0.5);
+  overflow: hidden;
+}
+
+.prefs-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid var(--color-border, rgba(255,255,255,0.08));
+}
+
+.prefs-header h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text, #f2f2f7);
+}
+
+.prefs-close {
+  background: none;
+  border: none;
+  color: var(--color-text-muted, #8e8e93);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  line-height: 1;
+}
+.prefs-close:hover { background: rgba(255,255,255,0.08); }
+
+.prefs-body { padding: 20px; }
+
+.prefs-row {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.prefs-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted, #8e8e93);
+}
+
+.prefs-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.prefs-radio {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--color-text, #f2f2f7);
+  cursor: pointer;
+}
+.prefs-radio input[type="radio"] { accent-color: var(--color-active, #007aff); }
+
+.prefs-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--color-border, rgba(255,255,255,0.08));
+}
+
+.prefs-btn {
+  padding: 6px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid var(--color-border, rgba(255,255,255,0.15));
+  background: transparent;
+  color: var(--color-text, #f2f2f7);
+  cursor: pointer;
+}
+.prefs-btn:hover { background: rgba(255,255,255,0.08); }
+
+.prefs-btn-primary {
+  background: var(--color-active, #007aff);
+  border-color: var(--color-active, #007aff);
+  color: #fff;
+}
+.prefs-btn-primary:hover { opacity: 0.85; }
