@@ -90,6 +90,58 @@
 .outline-node.active { background: var(--color-active-bg); color: var(--color-active); }
 .outline-node.key-focused { outline: 1px solid var(--color-active-border); outline-offset: -1px; }
 .outline-node.dragging { opacity: 0.4; }
+.outline-node.selected { background: var(--color-selection-bg, rgba(99,149,255,0.15)); }
+.outline-node.selected.active { background: var(--color-active-bg); }
+
+/* Selection info bar */
+.outline-selection-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px;
+  font-size: 11px;
+  color: var(--color-active);
+  background: var(--color-selection-bg, rgba(99,149,255,0.12));
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+  gap: 8px;
+}
+
+.outline-selection-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.outline-sel-btn {
+  padding: 2px 7px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: inherit;
+  background: var(--color-active-bg);
+  border: 1px solid var(--color-active-border, var(--color-border));
+  border-radius: 4px;
+  color: var(--color-active);
+  cursor: pointer;
+  line-height: 1.4;
+}
+.outline-sel-btn:hover { filter: brightness(1.15); }
+.outline-sel-btn--clear {
+  font-weight: 400;
+  color: var(--color-text-muted);
+  background: none;
+  border-color: var(--color-border);
+}
+.outline-sel-btn--clear:hover { color: var(--color-text); }
+
+/* Drag overlay sub-count badge */
+.outline-drag-sub-count {
+  margin-left: 8px;
+  font-size: 10px;
+  font-weight: 400;
+  opacity: 0.7;
+  font-style: italic;
+}
+
 
 .outline-fold-btn {
   flex-shrink: 0;

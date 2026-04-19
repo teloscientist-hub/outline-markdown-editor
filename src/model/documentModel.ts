@@ -318,6 +318,33 @@ export function moveSectionVertical(
   return moveSection(content, headings, headingId, targetId, placement)
 }
 
+
+// Change the heading level of an arbitrary set of headings in one pass.
+// Unlike changeSectionLevel, this does NOT automatically include descendants —
+// the caller decides exactly which IDs to include.
+// Safe to call with any mix of related/unrelated headings; processes in document
+// order so no offset issues (level changes never affect line count).
+export function changeMultipleSectionLevels(
+  content: string,
+  headings: HeadingNode[],
+  ids: string[],
+  delta: number
+): string {
+  if (ids.length === 0) return content
+  const idSet = new Set(ids)
+  const lines = content.split('\n')
+  for (const heading of headings) {
+    if (!idSet.has(heading.id)) continue
+    const line = lines[heading.lineStart]
+    const m = line.match(/^(#{1,6})(\s.*)$/)
+    if (!m) continue
+    const newLevel = Math.max(1, Math.min(6, m[1].length + delta))
+    if (newLevel === m[1].length) continue
+    lines[heading.lineStart] = '#'.repeat(newLevel) + m[2]
+  }
+  return lines.join('\n')
+}
+
 // Toggle fold for the heading at or containing the given line index.
 export function getHeadingForLine(headings: HeadingNode[], lineIndex: number): HeadingNode | null {
   // First check if the line IS a heading

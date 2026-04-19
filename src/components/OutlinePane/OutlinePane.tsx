@@ -1,5 +1,5 @@
 import { useCallback, useRef, useEffect, useState } from 'react'
-import type { KeyboardEvent } from 'react'
+import type { KeyboardEvent, MouseEvent } from 'react'
 import {
   DndContext, DragOverlay, PointerSensor, useSensor, useSensors,
 } from '@dnd-kit/core'
@@ -8,8 +8,10 @@ import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-
 import { CSS } from '@dnd-kit/utilities'
 import { useDocumentStore } from '../../store/documentStore'
 import type { HeadingNode } from '../../model/documentModel'
-import { isHeadingVisible } from '../../model/documentModel'
+import { isHeadingVisible, getDescendantIds } from '../../model/documentModel'
 import './OutlinePane.css'
+
+// ── Node component ────────────────────────────────────────────────────────────
 
 interface OutlineNodeProps {
   node: HeadingNode
@@ -18,27 +20,25 @@ interface OutlineNodeProps {
   foldedIds: Set<string>
   activeHeadingId: string | null
   keyboardFocusId: string | null
+  selectedIds: Set<string>
   onToggleFold: (id: string) => void
-  onSelect: (id: string) => void
+  onNodeClick: (id: string, e: MouseEvent) => void
 }
 
 function OutlineNodeItem({
-  node, allHeadings, depthMode, foldedIds, activeHeadingId, keyboardFocusId, onToggleFold, onSelect
+  node, allHeadings, depthMode, foldedIds, activeHeadingId, keyboardFocusId,
+  selectedIds, onToggleFold, onNodeClick,
 }: OutlineNodeProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: node.id })
 
   const isFolded = foldedIds.has(node.id)
-  // Show the fold triangle only when this heading has children that are
-  // visible at the current depth.  In filtered modes (depthMode > 0), children
-  // deeper than depthMode are already hidden — the triangle would appear
-  // to do nothing, which is confusing.  In Show All mode (depthMode === 0),
-  // keep the original behaviour: show triangle for any heading with content.
   const hasVisibleChildren = depthMode === 0
     ? node.sectionEnd > node.lineStart
     : allHeadings.some(h => h.parentId === node.id && h.level <= depthMode)
-  const isActive = activeHeadingId === node.id
+  const isActive    = activeHeadingId === node.id
   const isKeyFocused = keyboardFocusId === node.id
+  const isSelected  = selectedIds.has(node.id)
 
   return (
     <div
@@ -49,7 +49,14 @@ function OutlineNodeItem({
         opacity: isDragging ? 0.4 : 1,
         paddingLeft: `${node.depth * 14 + 6}px`,
       }}
-      className={`outline-node level-${node.level}${isActive ? ' active' : ''}${isKeyFocused ? ' key-focused' : ''}${isDragging ? ' dragging' : ''}`}
+      className={[
+        'outline-node',
+        `level-${node.level}`,
+        isActive     ? 'active'     : '',
+        isKeyFocused ? 'key-focused': '',
+        isSelected   ? 'selected'   : '',
+        isDragging   ? 'dragging'   : '',
+      ].filter(Boolean).join(' ')}
       data-heading-id={node.id}
     >
       <button
@@ -62,7 +69,7 @@ function OutlineNodeItem({
       </button>
       <div
         className="outline-node-label"
-        onClick={() => onSelect(node.id)}
+        onClick={e => onNodeClick(node.id, e)}
         {...attributes}
         {...listeners}
         title={node.text}
@@ -73,22 +80,43 @@ function OutlineNodeItem({
   )
 }
 
+// ── Main pane ────────────────────────────────────────────────────────────────
+
 export function OutlinePane() {
   const {
     headings, foldedIds, depthMode, activeHeadingId,
     toggleFold, setActiveHeading, moveSection,
     promoteSectionById, demoteSectionById,
+    promoteMultipleById, demoteMultipleById,
   } = useDocumentStore()
 
-  const [draggingId, setDraggingId] = useState<string | null>(null)
-  const [search, setSearch] = useState('')
-  const [keyFocusId, setKeyFocusId] = useState<string | null>(null)
-  const treeRef = useRef<HTMLDivElement>(null)
+  const [draggingId, setDraggingId]   = useState<string | null>(null)
+  const [search, setSearch]           = useState('')
+  const [keyFocusId, setKeyFocusId]   = useState<string | null>(null)
+
+  // ── Multi-select state ────────────────────────────────────────────────────
+  // selectedIds: the set of headings currently highlighted (multi-select).
+  // anchorId: the last heading clicked without Shift — pivot for range selection.
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [anchorId, setAnchorId]       = useState<string | null>(null)
+
+  const treeRef   = useRef<HTMLDivElement>(null)
   const searchRef = useRef<HTMLInputElement>(null)
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
   )
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+
+  // Returns the set of IDs for a heading and all its descendants.
+  const getSubtreeIds = useCallback((headingId: string): Set<string> => {
+    const ids = new Set<string>()
+    ids.add(headingId)
+    const descendants = getDescendantIds(headings, headingId)
+    descendants.forEach(id => ids.add(id))
+    return ids
+  }, [headings])
 
   // Visible headings filtered by depth + fold state + search
   const visibleHeadings = headings.filter(h => {
@@ -97,9 +125,19 @@ export function OutlinePane() {
     return h.text.toLowerCase().includes(search.toLowerCase())
   })
 
-  // Keep a current ref so handleDragEnd never reads stale visibleHeadings
   const visibleHeadingsRef = useRef(visibleHeadings)
   visibleHeadingsRef.current = visibleHeadings
+
+  // Clear selection when headings list changes substantially
+  // (e.g. after a drag that renumbers line IDs)
+  const headingCountRef = useRef(headings.length)
+  useEffect(() => {
+    if (headings.length !== headingCountRef.current) {
+      setSelectedIds(new Set())
+      setAnchorId(null)
+      headingCountRef.current = headings.length
+    }
+  }, [headings])
 
   // Auto-scroll outline to active heading
   useEffect(() => {
@@ -108,10 +146,41 @@ export function OutlinePane() {
     if (el) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
   }, [activeHeadingId])
 
-  // Keyboard navigation handler
+  // ── Click handler ─────────────────────────────────────────────────────────
+  const handleNodeClick = useCallback((id: string, e: MouseEvent) => {
+    if (e.shiftKey && anchorId) {
+      // Range select: all visible headings between anchor and clicked item (inclusive)
+      const visibleIds = visibleHeadingsRef.current.map(h => h.id)
+      const anchorIdx  = visibleIds.indexOf(anchorId)
+      const clickIdx   = visibleIds.indexOf(id)
+      if (anchorIdx !== -1 && clickIdx !== -1) {
+        const start = Math.min(anchorIdx, clickIdx)
+        const end   = Math.max(anchorIdx, clickIdx)
+        setSelectedIds(new Set(visibleIds.slice(start, end + 1)))
+      }
+      // Do NOT update anchorId on shift-click — keep the original pivot
+    } else {
+      // Regular click: select this heading + its entire subtree
+      setSelectedIds(getSubtreeIds(id))
+      setAnchorId(id)
+      setActiveHeading(id)
+      setKeyFocusId(null)
+    }
+  }, [anchorId, getSubtreeIds, setActiveHeading])
+
+  // Click on empty space in the tree clears selection
+  const handleTreeClick = useCallback((e: MouseEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement
+    if (!target.closest('.outline-node')) {
+      setSelectedIds(new Set())
+      setAnchorId(null)
+    }
+  }, [])
+
+  // ── Keyboard navigation ───────────────────────────────────────────────────
   const handleKeyDown = useCallback((e: KeyboardEvent<HTMLDivElement>) => {
     const ids = visibleHeadings.map(h => h.id)
-    const currentId = keyFocusId ?? activeHeadingId
+    const currentId  = keyFocusId ?? activeHeadingId
     const currentIdx = currentId ? ids.indexOf(currentId) : -1
 
     switch (e.key) {
@@ -163,26 +232,57 @@ export function OutlinePane() {
       }
       case 'Tab': {
         e.preventDefault()
-        const id = keyFocusId ?? activeHeadingId
-        if (id) {
-          // Tab = demote (# → ##, indent deeper in outline)
-          // Shift-Tab = promote (## → #, outdent in outline)
-          if (e.shiftKey) promoteSectionById(id)
-          else demoteSectionById(id)
+        const focusId = keyFocusId ?? activeHeadingId
+        if (!focusId) break
+
+        if (e.shiftKey) {
+          // Promote ——————————————————————————————————————————————————
+          // If multiple headings selected, batch-promote exactly those IDs.
+          // Otherwise fall through to single-heading promote (which also
+          // promotes descendants via changeSectionLevel in the store).
+          if (selectedIds.size > 1) {
+            promoteMultipleById(Array.from(selectedIds))
+          } else {
+            promoteSectionById(focusId)
+            // Refresh single-item selection to match new heading IDs (unchanged)
+            setSelectedIds(getSubtreeIds(focusId))
+          }
+        } else {
+          // Demote ———————————————————————————————————————————————————
+          if (selectedIds.size > 1) {
+            demoteMultipleById(Array.from(selectedIds))
+          } else {
+            demoteSectionById(focusId)
+            setSelectedIds(getSubtreeIds(focusId))
+          }
         }
         break
       }
       case 'Escape': {
         if (search) { setSearch(''); searchRef.current?.blur() }
         setKeyFocusId(null)
+        setSelectedIds(new Set())
+        setAnchorId(null)
         break
       }
     }
-  }, [visibleHeadings, keyFocusId, activeHeadingId, foldedIds, toggleFold, setActiveHeading, search, promoteSectionById, demoteSectionById])
+  }, [
+    visibleHeadings, keyFocusId, activeHeadingId, foldedIds, search,
+    selectedIds, getSubtreeIds,
+    toggleFold, setActiveHeading,
+    promoteSectionById, demoteSectionById,
+    promoteMultipleById, demoteMultipleById,
+  ])
 
-  const handleDragStart = useCallback((e: DragStartEvent) => setDraggingId(e.active.id as string), [])
+  // ── Drag ─────────────────────────────────────────────────────────────────
+  const handleDragStart = useCallback((e: DragStartEvent) => {
+    setDraggingId(e.active.id as string)
+  }, [])
+
   const handleDragEnd = useCallback((e: DragEndEvent) => {
     setDraggingId(null)
+    setSelectedIds(new Set())
+    setAnchorId(null)
     if (!e.over || e.active.id === e.over.id) return
 
     const vh = visibleHeadingsRef.current
@@ -190,17 +290,20 @@ export function OutlinePane() {
     const newIndex = vh.findIndex(h => h.id === e.over!.id)
     if (oldIndex === -1 || newIndex === -1) return
 
-    // dnd-kit reports the item whose CENTER the dragged item has crossed.
-    // Moving DOWN (newIndex > oldIndex): cursor passed over.id's center → insert AFTER it.
-    // Moving UP   (newIndex < oldIndex): cursor passed over.id's center → insert BEFORE it.
     const placement = newIndex > oldIndex ? 'after' : 'before'
     moveSection(e.active.id as string, e.over.id as string, placement)
   }, [moveSection])
 
   const draggingNode = draggingId ? headings.find(h => h.id === draggingId) : null
+  // Count how many sub-headings the dragged node carries along
+  const draggingSubCount = draggingId
+    ? getDescendantIds(headings, draggingId).length
+    : 0
 
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="outline-pane" onKeyDown={handleKeyDown} tabIndex={0}>
+
       {/* Search */}
       <div className="outline-search-bar">
         <input
@@ -217,6 +320,30 @@ export function OutlinePane() {
         )}
       </div>
 
+      {/* Selection info bar */}
+      {selectedIds.size > 1 && (
+        <div className="outline-selection-bar">
+          <span>{selectedIds.size} headings selected</span>
+          <div className="outline-selection-actions">
+            <button
+              className="outline-sel-btn"
+              title="Promote selected  (Shift+Tab)"
+              onClick={() => promoteMultipleById(Array.from(selectedIds))}
+            >H−</button>
+            <button
+              className="outline-sel-btn"
+              title="Demote selected  (Tab)"
+              onClick={() => demoteMultipleById(Array.from(selectedIds))}
+            >H+</button>
+            <button
+              className="outline-sel-btn outline-sel-btn--clear"
+              title="Clear selection  (Esc)"
+              onClick={() => { setSelectedIds(new Set()); setAnchorId(null) }}
+            >✕</button>
+          </div>
+        </div>
+      )}
+
       {/* Tree */}
       {visibleHeadings.length === 0 ? (
         <div className="outline-empty">
@@ -225,7 +352,7 @@ export function OutlinePane() {
       ) : (
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           <SortableContext items={visibleHeadings.map(h => h.id)} strategy={verticalListSortingStrategy}>
-            <div className="outline-tree" ref={treeRef}>
+            <div className="outline-tree" ref={treeRef} onClick={handleTreeClick}>
               {visibleHeadings.map(node => (
                 <OutlineNodeItem
                   key={node.id}
@@ -235,16 +362,24 @@ export function OutlinePane() {
                   foldedIds={foldedIds}
                   activeHeadingId={activeHeadingId}
                   keyboardFocusId={keyFocusId}
+                  selectedIds={selectedIds}
                   onToggleFold={toggleFold}
-                  onSelect={id => { setActiveHeading(id); setKeyFocusId(null) }}
+                  onNodeClick={handleNodeClick}
                 />
               ))}
             </div>
           </SortableContext>
+
           <DragOverlay dropAnimation={null}>
             {draggingNode && (
               <div className={`outline-drag-overlay level-${draggingNode.level}`}>
-                <span>↕</span> {draggingNode.text}
+                <span>↕</span>
+                {draggingNode.text}
+                {draggingSubCount > 0 && (
+                  <span className="outline-drag-sub-count">
+                    +{draggingSubCount} sub-heading{draggingSubCount !== 1 ? 's' : ''}
+                  </span>
+                )}
               </div>
             )}
           </DragOverlay>

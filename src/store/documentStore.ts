@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { subscribeWithSelector } from 'zustand/middleware'
 import type { HeadingNode } from '../model/documentModel'
-import { parseHeadings, moveSection, changeSectionLevel, moveSectionVertical } from '../model/documentModel'
+import { parseHeadings, moveSection, changeSectionLevel, moveSectionVertical, changeMultipleSectionLevels } from '../model/documentModel'
 
 const SAMPLE_DOCUMENT = `# Welcome to Outline Markdown Editor
 
@@ -125,6 +125,8 @@ export interface DocumentState {
   demoteSectionById: (id: string) => void
   moveSectionUp: (id: string) => void
   moveSectionDown: (id: string) => void
+  promoteMultipleById: (ids: string[]) => void
+  demoteMultipleById: (ids: string[]) => void
 
   setHeadingsOnlyMode: (v: boolean) => void
   // Set both headingsOnlyMode + depthMode in one call (for the unified View selector)
@@ -337,6 +339,21 @@ export const useDocumentStore = create<DocumentState>()(
       const { content, headings } = get()
       const newContent = moveSectionVertical(content, headings, id, 'up')
       if (newContent) set({ content: newContent, headings: parseHeadings(newContent), isDirty: true })
+    },
+
+
+    promoteMultipleById: (ids) => {
+      if (ids.length === 0) return
+      const { content, headings } = get()
+      const newContent = changeMultipleSectionLevels(content, headings, ids, -1)
+      set({ content: newContent, headings: parseHeadings(newContent), isDirty: true })
+    },
+
+    demoteMultipleById: (ids) => {
+      if (ids.length === 0) return
+      const { content, headings } = get()
+      const newContent = changeMultipleSectionLevels(content, headings, ids, 1)
+      set({ content: newContent, headings: parseHeadings(newContent), isDirty: true })
     },
 
     moveSectionDown: (id) => {
