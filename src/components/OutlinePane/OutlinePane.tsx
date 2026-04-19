@@ -13,6 +13,8 @@ import './OutlinePane.css'
 
 interface OutlineNodeProps {
   node: HeadingNode
+  allHeadings: HeadingNode[]
+  depthMode: number
   foldedIds: Set<string>
   activeHeadingId: string | null
   keyboardFocusId: string | null
@@ -21,13 +23,20 @@ interface OutlineNodeProps {
 }
 
 function OutlineNodeItem({
-  node, foldedIds, activeHeadingId, keyboardFocusId, onToggleFold, onSelect
+  node, allHeadings, depthMode, foldedIds, activeHeadingId, keyboardFocusId, onToggleFold, onSelect
 }: OutlineNodeProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: node.id })
 
   const isFolded = foldedIds.has(node.id)
-  const hasContent = node.sectionEnd > node.lineStart  // subheadings or body text
+  // Show the fold triangle only when this heading has children that are
+  // visible at the current depth.  In filtered modes (depthMode > 0), children
+  // deeper than depthMode are already hidden — the triangle would appear
+  // to do nothing, which is confusing.  In Show All mode (depthMode === 0),
+  // keep the original behaviour: show triangle for any heading with content.
+  const hasVisibleChildren = depthMode === 0
+    ? node.sectionEnd > node.lineStart
+    : allHeadings.some(h => h.parentId === node.id && h.level <= depthMode)
   const isActive = activeHeadingId === node.id
   const isKeyFocused = keyboardFocusId === node.id
 
@@ -44,7 +53,7 @@ function OutlineNodeItem({
       data-heading-id={node.id}
     >
       <button
-        className={`outline-fold-btn ${hasContent ? '' : 'invisible'}`}
+        className={`outline-fold-btn ${hasVisibleChildren ? '' : 'invisible'}`}
         onClick={e => { e.stopPropagation(); onToggleFold(node.id) }}
         tabIndex={-1}
         title={isFolded ? 'Expand' : 'Collapse'}
@@ -221,6 +230,8 @@ export function OutlinePane() {
                 <OutlineNodeItem
                   key={node.id}
                   node={node}
+                  allHeadings={headings}
+                  depthMode={depthMode}
                   foldedIds={foldedIds}
                   activeHeadingId={activeHeadingId}
                   keyboardFocusId={keyFocusId}

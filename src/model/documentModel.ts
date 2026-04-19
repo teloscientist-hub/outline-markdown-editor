@@ -168,6 +168,20 @@ export function computeHiddenLines(
         if (depthMode > 0 && level > depthMode) hidden.add(i)  // hide deep headings
       }
     }
+    // Also respect fold state: hide headings whose ancestor is folded
+    for (const heading of headings) {
+      if (!heading.parentId) continue
+      let pid: string | null = heading.parentId
+      while (pid) {
+        if (foldedIds.has(pid)) {
+          // Hide this heading line (body already hidden above)
+          hidden.add(heading.lineStart)
+          break
+        }
+        const parent = getHeading(headings, pid)
+        pid = parent?.parentId ?? null
+      }
+    }
     return hidden
   }
 

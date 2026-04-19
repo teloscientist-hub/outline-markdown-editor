@@ -238,21 +238,14 @@ export const useDocumentStore = create<DocumentState>()(
 
     setDepthMode: (mode) => set({ depthMode: mode }),
 
-    setViewMode: (_headingsOnly, depth) => {
-      const { headings } = get()
+    setViewMode: (headingsOnly, depth) => {
       if (depth === 0) {
-        // "Show All" — unfold everything, clear any filter state
+        // "Show All" — clear everything, show all content
         set({ foldedIds: new Set<string>(), depthMode: 0, headingsOnlyMode: false })
       } else {
-        // Fold all headings at level >= depth (Word-style temporal fold)
-        // Headings shallower than `depth` are left as-is so user can navigate them
-        const newFolded = new Set(
-          headings
-            .filter(h => h.level >= depth && h.sectionEnd > h.lineStart)
-            .map(h => h.id)
-        )
-        // depthMode stored only for dropdown display — not used as a filter
-        set({ foldedIds: newFolded, depthMode: depth as DepthMode, headingsOnlyMode: false })
+        // Filtered mode — let computeHiddenLines handle depth + headingsOnly.
+        // Clear foldedIds so the user starts with a clean fold state they control.
+        set({ foldedIds: new Set<string>(), depthMode: depth as DepthMode, headingsOnlyMode: headingsOnly })
       }
     },
 
