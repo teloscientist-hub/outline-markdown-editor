@@ -152,7 +152,7 @@ export function MarkdownPane() {
   const hiddenLinesRef    = useRef<Set<number>>(new Set())
 
   // Bubble: null = hidden, {x,y} = visible at viewport position
-  const [bubbleCoords, setBubbleCoords] = useState<{ x: number; y: number } | null>(null)
+  const [bubble, setBubble] = useState<{ x: number; y: number; level: number } | null>(null)
 
   const {
     content,
@@ -300,11 +300,16 @@ export function MarkdownPane() {
                 const bubbleX = editorRect
                   ? editorRect.left + editorRect.width / 2
                   : coords.left
-                // Schedule after paint so layout is complete
-                requestAnimationFrame(() => setBubbleCoords({ x: bubbleX, y: coords.top }))
+                // Detect heading level of the cursor line for the select
+                const cursorLine = update.state.doc.lineAt(sel.from)
+                const hMatch = cursorLine.text.match(/^(#{1,6})\s/)
+                const headingLevel = hMatch ? hMatch[1].length : 0
+                requestAnimationFrame(() =>
+                  setBubble({ x: bubbleX, y: coords.top, level: headingLevel })
+                )
               }
             } else {
-              setBubbleCoords(null)
+              setBubble(null)
             }
           }
         }),
@@ -391,10 +396,11 @@ export function MarkdownPane() {
   return (
     <div className="markdown-pane">
       <div ref={editorRef} className="cm-editor-wrapper" />
-      {bubbleCoords && (
+      {bubble && (
         <FormatBubble
-          x={bubbleCoords.x}
-          y={bubbleCoords.y}
+          x={bubble.x}
+          y={bubble.y}
+          headingLevel={bubble.level}
           onFormat={(type) => {
             const view = viewRef.current
             if (view) applyFormatting(view, type)

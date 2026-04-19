@@ -1,11 +1,15 @@
 import { EditorView } from '@codemirror/view'
 import { EditorSelection } from '@codemirror/state'
 
-export type FormatType = 'h1'|'h2'|'h3'|'h4'|'h5'|'h6'|'bold'|'italic'|'ul'|'ol'|'todo'
+export type FormatType =
+  | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6'
+  | 'promote' | 'demote' | 'remove-heading'
+  | 'bold' | 'italic'
+  | 'ul' | 'ol' | 'todo'
 
 /**
  * Apply a markdown formatting operation to the editor view.
- * Toggles: applying again removes the formatting.
+ * Most formats toggle: applying again removes the formatting.
  */
 export function applyFormatting(view: EditorView, type: FormatType): boolean {
   const state = view.state
@@ -19,7 +23,6 @@ export function applyFormatting(view: EditorView, type: FormatType): boolean {
                      && selected.length > marker.length * 2
 
     if (wrapped) {
-      // Unwrap
       const inner = selected.slice(marker.length, -marker.length)
       view.dispatch({
         changes:   { from: sel.from, to: sel.to, insert: inner },
@@ -40,7 +43,7 @@ export function applyFormatting(view: EditorView, type: FormatType): boolean {
     return true
   }
 
-  // ── Block: headings ────────────────────────────────────────────────────────
+  // ── Block: set specific heading level ──────────────────────────────────────
   if (type.startsWith('h') && '123456'.includes(type[1])) {
     const level    = parseInt(type[1])
     const prefix   = '#'.repeat(level) + ' '
@@ -48,9 +51,9 @@ export function applyFormatting(view: EditorView, type: FormatType): boolean {
     const toLine   = state.doc.lineAt(sel.to)
     const changes: { from: number; to: number; insert: string }[] = []
     for (let i = fromLine.number; i <= toLine.number; i++) {
-      const line    = state.doc.line(i)
+      const line     = state.doc.line(i)
       const stripped = line.text.replace(/^#{1,6}\s+/, '')
-      // Toggle: if already this heading level, remove heading
+      // Toggle: if already this exact heading level, remove it
       if (line.text === prefix + stripped && stripped !== line.text) {
         changes.push({ from: line.from, to: line.to, insert: stripped })
       } else {
@@ -59,6 +62,49 @@ export function applyFormatting(view: EditorView, type: FormatType): boolean {
     }
     view.dispatch({ changes })
     view.focus()
+    return true
+  }
+
+  // ── Block: promote heading (H3 → H2, fewer #'s) ───────────────────────────
+  if (type === 'promote' || type === 'demote') {
+    const fromLine = state.doc.lineAt(sel.from)
+    const toLine   = state.doc.lineAt(sel.to)
+    const changes: { from: number; to: number; insert: string }[] = []
+    for (let i = fromLine.number; i <= toLine.number; i++) {
+      const line  = state.doc.line(i)
+      const match = line.text.match(/^(#{1,6})\s/)
+      if (!match) continue
+      const level    = match[1].length
+      const newLevel = type === 'promote'
+        ? Math.max(1, level - 1)
+        : Math.min(6, level + 1)
+      if (newLevel === level) continue
+      const stripped = line.text.replace(/^#{1,6}\s+/, '')
+      changes.push({ from: line.from, to: line.to,
+        insert: '#'.repeat(newLevel) + ' ' + stripped })
+    }
+    if (changes.length > 0) {
+      view.dispatch({ changes })
+      view.focus()
+    }
+    return true
+  }
+
+  // ── Block: remove heading prefix ───────────────────────────────────────────
+  if (type === 'remove-heading') {
+    const fromLine = state.doc.lineAt(sel.from)
+    const toLine   = state.doc.lineAt(sel.to)
+    const changes: { from: number; to: number; insert: string }[] = []
+    for (let i = fromLine.number; i <= toLine.number; i++) {
+      const line     = state.doc.line(i)
+      const stripped = line.text.replace(/^#{1,6}\s+/, '')
+      if (stripped !== line.text)
+        changes.push({ from: line.from, to: line.to, insert: stripped })
+    }
+    if (changes.length > 0) {
+      view.dispatch({ changes })
+      view.focus()
+    }
     return true
   }
 
@@ -75,7 +121,6 @@ export function applyFormatting(view: EditorView, type: FormatType): boolean {
       const alreadyTodo = type === 'todo' && /^- \[[ x]\] /.test(line.text)
 
       if (alreadyUl || alreadyOl || alreadyTodo) {
-        // Toggle off
         const stripped = line.text.replace(/^(- \[[ x]\] |- (?!\[)|\d+\. )/, '')
         changes.push({ from: line.from, to: line.to, insert: stripped })
       } else {

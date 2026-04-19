@@ -19,11 +19,11 @@
 }
 
 @keyframes bubblePop {
-  from { opacity: 0; transform: translate(-50%, calc(-100% - 4px)) scale(0.92) }
-  to   { opacity: 1; transform: translate(-50%, calc(-100% - 10px)) scale(1) }
+  from { opacity: 0; transform: translate(-50%, calc(-100% - 4px)) scale(0.92); }
+  to   { opacity: 1; transform: translate(-50%, calc(-100% - 10px)) scale(1); }
 }
 
-/* Arrow pointing down */
+/* Down-arrow */
 .fmt-bubble::after {
   content: '';
   position: absolute;
@@ -36,6 +36,16 @@
   border-top: 6px solid var(--color-border, #444);
 }
 
+/* ── Vertical separator ──────────────────────────────────────────────────── */
+.fmt-sep {
+  width: 1px;
+  height: 16px;
+  background: var(--color-border, #444);
+  margin: 0 4px;
+  flex-shrink: 0;
+}
+
+/* ── Shared button style ─────────────────────────────────────────────────── */
 .fmt-btn {
   background: none;
   border: none;
@@ -50,25 +60,66 @@
   font-family: inherit;
 }
 
-.fmt-btn:hover {
+.fmt-btn:hover:not(:disabled) {
   background: var(--color-hover, rgba(255, 255, 255, 0.1));
   color: var(--color-accent, #4ec9b0);
 }
 
-.fmt-btn--bold  { font-weight: 800; }
-.fmt-btn--italic { font-style: italic; }
-.fmt-btn--h1 { font-size: 11px; }
-.fmt-btn--h2 { font-size: 11px; }
-.fmt-btn--h3 { font-size: 11px; }
+.fmt-btn:disabled {
+  opacity: 0.28;
+  cursor: default;
+}
 
-/* Separator after H3 and after italic */
-.fmt-btn--h3::after,
-.fmt-btn--italic::after {
-  content: '';
-  display: inline-block;
-  width: 1px;
-  height: 14px;
-  background: var(--color-border, #444);
-  margin-left: 8px;
-  vertical-align: middle;
+.fmt-btn--bold   { font-weight: 800; }
+.fmt-btn--italic { font-style: italic; }
+
+/* H− / H+ nudge buttons */
+.fmt-btn--nudge {
+  font-size: 11px;
+  letter-spacing: -0.02em;
+  padding: 4px 6px;
+  color: var(--color-text-muted, #888);
+}
+.fmt-btn--nudge:hover:not(:disabled) {
+  color: var(--color-accent, #4ec9b0);
+}
+
+/* ── Heading level select ────────────────────────────────────────────────── */
+.fmt-select {
+  appearance: none;
+  -webkit-appearance: none;
+  background: var(--color-hover, rgba(255,255,255,0.06));
+  border: 1px solid var(--color-border, #444);
+  border-radius: 5px;
+  color: var(--color-text, #d4d4d4);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  height: 24px;
+  padding: 0 20px 0 7px;
+  outline: none;
+  /* Custom chevron */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 5px center;
+  background-size: 8px 5px;
+  transition: border-color 0.1s, color 0.1s;
+  min-width: 46px;
+  text-align: center;
+}
+
+.fmt-select:hover {
+  border-color: var(--color-accent, #4ec9b0);
+  color: var(--color-accent, #4ec9b0);
+}
+
+.fmt-select:focus {
+  border-color: var(--color-accent, #4ec9b0);
+}
+
+/* Dark select option background (important for system light mode) */
+.fmt-select option {
+  background: var(--color-surface, #2d2d2d);
+  color: var(--color-text, #d4d4d4);
 }
