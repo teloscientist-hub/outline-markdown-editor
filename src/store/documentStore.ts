@@ -3,61 +3,62 @@ import { subscribeWithSelector } from 'zustand/middleware'
 import type { HeadingNode } from '../model/documentModel'
 import { parseHeadings, moveSection, changeSectionLevel, moveSectionVertical } from '../model/documentModel'
 
-const SAMPLE_DOCUMENT = `![Outline Markdown Editor](app-icon-128.png)
+const SAMPLE_DOCUMENT = `# Welcome to Outline Markdown Editor
 
-# Welcome to Outline Markdown Editor
-
-A tri-pane Markdown editor with real outline control.
+A tri-pane Markdown editor with real outline control. Use the **Outline** pane on the left to navigate and restructure your document, the **Markdown** pane in the center to write, and the **Display** pane on the right to see the rendered result.
 
 ## Getting Started
 
-Open a file from the **File** menu, or start typing here.
+- **Open a file** — File › Open (⌘O), or drag a .md file onto the dock icon
+- **New window** — File › New Window (⌘N) opens an independent window
+- **Recent files** — File › Open Recent shows your last 10 files
+- **Save** — ⌘S saves; the app also auto-saves 2 seconds after you stop typing
 
-### Pane Controls
+> 📖 For a full guide, open **Help › User's Manual** from the menu bar.
 
-Use the toolbar buttons to toggle which panes are visible:
-- **Outline** — structural tree of headings
-- **Markdown** — raw source editor
-- **Display** — rendered reading view
+## The Three Panes
 
-### Outline Depth
+### Outline Pane (left)
+The outline shows every heading in your document as a collapsible tree.
 
-Use the depth selector to filter which heading levels appear.
+- Click a heading to jump to it in the editor and preview
+- Click the **▶** triangle to fold a section — it hides in all three panes at once
+- Use the **depth selector** to filter which heading levels are visible
+- **Tab** demotes a heading one level; **Shift+Tab** promotes it
+- **Drag headings** to reorder entire sections
 
-## Features
+### Markdown Pane (center)
+A full-featured CodeMirror editor with markdown syntax highlighting.
 
-### Folding
-
-Click the triangle next to any heading in the outline to fold or unfold its section.
-Folding propagates across all visible panes.
-
-### Navigation
-
-Click any heading in the outline to jump to it in the editor and display panes.
-
-### Section Reordering
-
-Drag headings in the outline to reorder sections. The full section content moves with the heading.
-
-## Keyboard Shortcuts
+- **Select text** to see the floating format toolbar appear above your selection
+- **Format menu** (or keyboard shortcuts) to apply headings, bold, italic, lists
 
 | Shortcut | Action |
 |---|---|
-| Cmd+1 | Toggle Outline |
-| Cmd+2 | Toggle Markdown |
-| Cmd+3 | Toggle Display |
-| Cmd+O | Open file |
-| Cmd+S | Save file |
+| ⌘B / ⌘I | Bold / Italic |
+| ⌘⌥1–6 | Heading 1–6 |
+| ⌘⇧8 / ⌘⇧7 | Bullet / Numbered list |
+| ⌘⇧T | Todo item |
+| ⌘[ / ⌘] | Promote / Demote heading |
+| ⌥↑ / ⌥↓ | Move section up / down |
 
-## Tips
+### Display Pane (right)
+Rendered preview with full GitHub Flavored Markdown support — tables, task lists, strikethrough, and more. Scrolls in sync with the Markdown pane.
 
-### Large Documents
+## Pane Controls
 
-Use the depth selector to work at a high level first, then drill down into specific sections.
+| Shortcut | Action |
+|---|---|
+| ⌘1 | Toggle Outline pane |
+| ⌘2 | Toggle Markdown pane |
+| ⌘3 | Toggle Display pane |
+| ⌘0 | Show all panes |
 
-### Writing Workflow
+Drag the dividers between panes to resize them.
 
-Start in the Outline pane to structure your document, then switch to Markdown for detailed writing, then check the Display pane for a clean reading view.
+## Help
+
+Open **Help › Feature Overview** for a complete feature reference, or **Help › User's Manual** for step-by-step instructions on every feature.
 `
 
 export type DepthMode = 0 | 1 | 2 | 3 | 4 | 5 | 6

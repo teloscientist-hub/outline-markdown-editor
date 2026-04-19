@@ -5,6 +5,13 @@ const fs = require('fs');
 
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
 
+// ── Docs path (bundled via extraResources) ───────────────────────────────────
+function getDocsPath() {
+  return isDev
+    ? path.join(__dirname, '../docs')
+    : path.join(process.resourcesPath, 'docs')
+}
+
 // ── Per-window data ──────────────────────────────────────────────────────────
 const windowData = new Map();
 
@@ -256,6 +263,19 @@ function buildMenu() {
           checked: win.id === focused?.id,
           click: () => { if (win.isMinimized()) win.restore(); win.focus(); },
         })),
+      ],
+    },
+    {
+      label: 'Help',
+      submenu: [
+        {
+          label: 'Feature Overview',
+          click: () => openRecentFile(path.join(getDocsPath(), 'Feature-Overview.md')),
+        },
+        {
+          label: "User's Manual",
+          click: () => openRecentFile(path.join(getDocsPath(), 'Users-Manual.md')),
+        },
       ],
     },
   ];

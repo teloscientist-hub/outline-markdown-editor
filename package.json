@@ -51,7 +51,7 @@
   "build": {
     "appId": "com.outlinemarkdown.editor",
     "productName": "Outline Markdown Editor",
-    "copyright": "Copyright \u00a9 2025",
+    "copyright": "Copyright © 2025",
     "directories": {
       "output": "release",
       "buildResources": "build"
@@ -110,6 +110,12 @@
         "mimeType": "text/markdown",
         "role": "Editor",
         "icon": "build/icon.icns"
+      }
+    ],
+    "extraResources": [
+      {
+        "from": "docs/",
+        "to": "docs/"
       }
     ]
   }

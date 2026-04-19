@@ -1,73 +1,62 @@
-# React + TypeScript + Vite
+# Outline Markdown Editor
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A tri-pane desktop Markdown editor with real outline control — fold, filter, reorder, and navigate
+your document structure without leaving the app.
 
-Currently, two official plugins are available:
+Built with Electron, React 19, TypeScript, and CodeMirror 6.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+---
 
-## React Compiler
+## Panes
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+| Pane | Purpose |
+|---|---|
+| **Outline** | Heading tree — fold, filter depth, drag-and-drop reorder |
+| **Markdown** | CodeMirror 6 source editor with live syntax highlighting |
+| **Display** | Rendered preview (GFM: tables, task lists, strikethrough) |
 
-## Expanding the ESLint configuration
+All three panes stay in sync: folding a section in the Outline hides it in both the Markdown and Display panes simultaneously.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Highlights
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- **Floating format bubble** — select text, a toolbar appears above it with H1–H3, Bold, Italic, Bullet, Numbered, Todo
+- **Format menu + shortcuts** — `⌘B` bold, `⌘I` italic, `⌘⌥1–6` headings, `⌘⇧7/8/T` lists
+- **Depth filter** — show only H1s, H1+H2, etc. while writing at a high level
+- **Multi-window** — `⌘N` opens a new independent window; Window menu lists all open docs
+- **Open Recent** — File › Open Recent keeps the last 10 files one click away
+- **Document Info** — word count, character count, pages, reading time, file dates (`⌘⇧I`)
+- **No-flash file open** — opening a file via Finder/Open With goes straight to your doc
+- **Autosave** — saves 2 seconds after you stop typing
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## Keyboard Shortcuts
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+| Shortcut | Action |
+|---|---|
+| `⌘N` | New window |
+| `⌘O` | Open file |
+| `⌘S` / `⌘⇧S` | Save / Save As |
+| `⌘⇧I` | Document Info |
+| `⌘,` | Preferences |
+| `⌘1/2/3` | Toggle Outline / Markdown / Display |
+| `⌘0` | Show all panes |
+| `⌘B` / `⌘I` | Bold / Italic |
+| `⌘⌥1–6` | Heading 1–6 |
+| `⌘⇧8` / `⌘⇧7` | Bullet / Numbered list |
+| `⌘⇧T` | Todo item |
+| `Tab` / `⇧Tab` | Demote / Promote heading (Outline pane) |
+| `⌘[` / `⌘]` | Promote / Demote heading (Markdown pane) |
+| `⌥↑` / `⌥↓` | Move section up / down (Markdown pane) |
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Docs
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+- [Feature Overview](docs/Feature-Overview.md) — full feature reference
+- [User's Manual](docs/Users-Manual.md) — step-by-step guide for every feature
+- [Developer Setup](docs/Developer-Setup.md) — build instructions, architecture notes
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## Tech Stack
+
+Electron 41 · React 19 · TypeScript · CodeMirror 6 · Zustand · dnd-kit · react-markdown
+
+## License
+
+MIT
