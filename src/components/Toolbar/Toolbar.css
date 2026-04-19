@@ -4,7 +4,7 @@
   height: 40px;
   background: var(--color-toolbar-bg);
   border-bottom: 1px solid var(--color-border);
-  padding: 0 12px;
+  padding: 0 12px 0 80px;
   gap: 8px;
   flex-shrink: 0;
   -webkit-app-region: drag;
