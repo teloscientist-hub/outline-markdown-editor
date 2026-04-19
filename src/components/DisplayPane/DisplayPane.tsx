@@ -1,10 +1,20 @@
-import { useRef, useEffect, useMemo, useCallback } from 'react'
+import { useRef, useEffect, useMemo, useCallback, useState } from 'react'
+import { createPortal } from 'react-dom'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { useDocumentStore } from '../../store/documentStore'
 import { computeHiddenLines } from '../../model/documentModel'
 import { publishScroll, subscribeScroll } from '../../scrollSync'
+import { applyFormat } from '../../formatBus'
+import type { FormatType } from '../../formatBus'
+import { FormatBubble } from '../FormatBubble/FormatBubble'
 import './DisplayPane.css'
+
+interface BubbleState {
+  x: number
+  y: number
+  headingLevel: number
+}
 
 export function DisplayPane() {
   const { content, headings, foldedIds, depthMode, headingsOnlyMode, activeHeadingId, setActiveHeading } =
@@ -14,6 +24,75 @@ export function DisplayPane() {
   // true while we are programmatically scrolling — prevents echo back to markdown pane
   const suppressScrollRef = useRef(false)
   const suppressTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+
+  // ── Format bubble state ───────────────────────────────────────────────────────
+  const [bubble, setBubble] = useState<BubbleState | null>(null)
+
+  // Detect text selection in the display pane and show the format bubble
+  useEffect(() => {
+    const handleMouseUp = (_e: MouseEvent) => {
+      // Small delay so the selection is finalised
+      setTimeout(() => {
+        const sel = window.getSelection()
+        if (!sel || sel.isCollapsed || sel.toString().trim() === '') {
+          setBubble(null)
+          return
+        }
+
+        // Make sure the selection is inside our display pane
+        const container = scrollRef.current
+        if (!container) return
+        const range = sel.getRangeAt(0)
+        if (!container.contains(range.commonAncestorContainer)) {
+          setBubble(null)
+          return
+        }
+
+        // Detect heading level from the closest heading ancestor
+        const anchor = range.startContainer
+        const anchorEl = anchor.nodeType === Node.ELEMENT_NODE
+          ? (anchor as HTMLElement)
+          : anchor.parentElement
+        const headingEl = anchorEl?.closest('h1,h2,h3,h4,h5,h6')
+        let headingLevel = 0
+        if (headingEl) {
+          headingLevel = parseInt(headingEl.tagName[1], 10)
+        }
+
+        // Position: horizontally centred on the selection rect, above it
+        const rect = range.getBoundingClientRect()
+        const bubbleX = rect.left + rect.width / 2
+        const bubbleY = rect.top - 8   // 8px gap above selection
+
+        setBubble({ x: bubbleX, y: bubbleY, headingLevel })
+      }, 0)
+    }
+
+    const handleMouseDown = (_e: MouseEvent) => {
+      // Hide bubble when clicking inside display pane (but not on the bubble itself)
+      const target = _e.target as HTMLElement
+      if (target.closest('.fmt-bubble')) return
+      setBubble(null)
+    }
+
+    const handleKeyDown = () => setBubble(null)
+
+    document.addEventListener('mouseup', handleMouseUp)
+    document.addEventListener('mousedown', handleMouseDown)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('mouseup', handleMouseUp)
+      document.removeEventListener('mousedown', handleMouseDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [])
+
+  const handleFormat = useCallback((type: FormatType) => {
+    // Delegate to the markdown editor via formatBus
+    applyFormat(type)
+    // Hide bubble after action
+    setBubble(null)
+  }, [])
 
   // Build visible content: filter out hidden lines
   const visibleContent = useMemo(() => {
@@ -130,74 +209,86 @@ export function DisplayPane() {
   }, [activeHeadingId, getAbsTop])
 
   return (
-    <div className="display-pane" ref={scrollRef} onScroll={handleScroll}>
-      <div className="display-content">
-        <ReactMarkdown
-          remarkPlugins={[remarkGfm]}
-          components={{
-            h1: ({ children, ...props }) => {
-              const id = headingToId(children)
-              const heading = headings.find(h => h.level === 1 && normalize(h.text) === normalize(String(children)))
-              return (
-                <h1
-                  {...props}
-                  id={id}
-                  data-heading-id={heading?.id}
-                  className="display-heading"
-                  onClick={() => heading && setActiveHeading(heading.id)}
-                >
-                  {children}
-                </h1>
-              )
-            },
-            h2: ({ children, ...props }) => {
-              const id = headingToId(children)
-              const heading = headings.find(h => h.level === 2 && normalize(h.text) === normalize(String(children)))
-              return (
-                <h2
-                  {...props}
-                  id={id}
-                  data-heading-id={heading?.id}
-                  className="display-heading"
-                  onClick={() => heading && setActiveHeading(heading.id)}
-                >
-                  {children}
-                </h2>
-              )
-            },
-            h3: ({ children, ...props }) => {
-              const id = headingToId(children)
-              const heading = headings.find(h => h.level === 3 && normalize(h.text) === normalize(String(children)))
-              return (
-                <h3
-                  {...props}
-                  id={id}
-                  data-heading-id={heading?.id}
-                  className="display-heading"
-                  onClick={() => heading && setActiveHeading(heading.id)}
-                >
-                  {children}
-                </h3>
-              )
-            },
-            h4: ({ children, ...props }) => {
-              const heading = headings.find(h => h.level === 4 && normalize(h.text) === normalize(String(children)))
-              return <h4 {...props} data-heading-id={heading?.id} className="display-heading" onClick={() => heading && setActiveHeading(heading.id)}>{children}</h4>
-            },
-            h5: ({ children, ...props }) => {
-              const heading = headings.find(h => h.level === 5 && normalize(h.text) === normalize(String(children)))
-              return <h5 {...props} data-heading-id={heading?.id} className="display-heading" onClick={() => heading && setActiveHeading(heading.id)}>{children}</h5>
-            },
-            h6: ({ children, ...props }) => {
-              const heading = headings.find(h => h.level === 6 && normalize(h.text) === normalize(String(children)))
-              return <h6 {...props} data-heading-id={heading?.id} className="display-heading" onClick={() => heading && setActiveHeading(heading.id)}>{children}</h6>
-            },
-          }}
-        >
-          {visibleContent}
-        </ReactMarkdown>
+    <>
+      <div className="display-pane" ref={scrollRef} onScroll={handleScroll}>
+        <div className="display-content">
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={{
+              h1: ({ children, ...props }) => {
+                const id = headingToId(children)
+                const heading = headings.find(h => h.level === 1 && normalize(h.text) === normalize(String(children)))
+                return (
+                  <h1
+                    {...props}
+                    id={id}
+                    data-heading-id={heading?.id}
+                    className="display-heading"
+                    onClick={() => heading && setActiveHeading(heading.id)}
+                  >
+                    {children}
+                  </h1>
+                )
+              },
+              h2: ({ children, ...props }) => {
+                const id = headingToId(children)
+                const heading = headings.find(h => h.level === 2 && normalize(h.text) === normalize(String(children)))
+                return (
+                  <h2
+                    {...props}
+                    id={id}
+                    data-heading-id={heading?.id}
+                    className="display-heading"
+                    onClick={() => heading && setActiveHeading(heading.id)}
+                  >
+                    {children}
+                  </h2>
+                )
+              },
+              h3: ({ children, ...props }) => {
+                const id = headingToId(children)
+                const heading = headings.find(h => h.level === 3 && normalize(h.text) === normalize(String(children)))
+                return (
+                  <h3
+                    {...props}
+                    id={id}
+                    data-heading-id={heading?.id}
+                    className="display-heading"
+                    onClick={() => heading && setActiveHeading(heading.id)}
+                  >
+                    {children}
+                  </h3>
+                )
+              },
+              h4: ({ children, ...props }) => {
+                const heading = headings.find(h => h.level === 4 && normalize(h.text) === normalize(String(children)))
+                return <h4 {...props} data-heading-id={heading?.id} className="display-heading" onClick={() => heading && setActiveHeading(heading.id)}>{children}</h4>
+              },
+              h5: ({ children, ...props }) => {
+                const heading = headings.find(h => h.level === 5 && normalize(h.text) === normalize(String(children)))
+                return <h5 {...props} data-heading-id={heading?.id} className="display-heading" onClick={() => heading && setActiveHeading(heading.id)}>{children}</h5>
+              },
+              h6: ({ children, ...props }) => {
+                const heading = headings.find(h => h.level === 6 && normalize(h.text) === normalize(String(children)))
+                return <h6 {...props} data-heading-id={heading?.id} className="display-heading" onClick={() => heading && setActiveHeading(heading.id)}>{children}</h6>
+              },
+            }}
+          >
+            {visibleContent}
+          </ReactMarkdown>
+        </div>
       </div>
-    </div>
+
+      {bubble && createPortal(
+        <FormatBubble
+          x={bubble.x}
+          y={bubble.y}
+          headingLevel={bubble.headingLevel}
+          onFormat={handleFormat}
+        />,
+        document.body
+      )}
+    </>
   )
 }
 

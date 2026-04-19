@@ -18,24 +18,46 @@ export function applyFormatting(view: EditorView, type: FormatType): boolean {
   // ── Inline: bold / italic ──────────────────────────────────────────────────
   if (type === 'bold' || type === 'italic') {
     const marker   = type === 'bold' ? '**' : '_'
+    const mLen     = marker.length
     const selected = state.sliceDoc(sel.from, sel.to)
-    const wrapped  = selected.startsWith(marker) && selected.endsWith(marker)
-                     && selected.length > marker.length * 2
+    const docLen   = state.doc.length
 
-    if (wrapped) {
-      const inner = selected.slice(marker.length, -marker.length)
+    // Case 1: selected text itself contains the markers (e.g. user selected "**hello**")
+    const selfWrapped = selected.startsWith(marker) && selected.endsWith(marker)
+                        && selected.length > mLen * 2
+
+    // Case 2: markers sit just outside the current selection (e.g. after applying bold,
+    // the inner text is selected but **…** surrounds it in the document)
+    const before       = sel.from >= mLen ? state.sliceDoc(sel.from - mLen, sel.from) : ''
+    const after        = sel.to + mLen <= docLen ? state.sliceDoc(sel.to, sel.to + mLen) : ''
+    const outerWrapped = before === marker && after === marker
+
+    if (selfWrapped) {
+      // Strip markers from within the selection
+      const inner = selected.slice(mLen, -mLen)
       view.dispatch({
         changes:   { from: sel.from, to: sel.to, insert: inner },
         selection: EditorSelection.range(sel.from, sel.from + inner.length),
       })
+    } else if (outerWrapped) {
+      // Strip markers that sit outside the selection — remove right marker first
+      // so offsets stay valid, then left marker
+      view.dispatch({
+        changes: [
+          { from: sel.to,        to: sel.to + mLen,        insert: '' },
+          { from: sel.from - mLen, to: sel.from,           insert: '' },
+        ],
+        selection: EditorSelection.range(sel.from - mLen, sel.to - mLen),
+      })
     } else {
+      // Apply markers
       const text   = selected || 'text'
       const insert = `${marker}${text}${marker}`
       view.dispatch({
         changes:   { from: sel.from, to: sel.to, insert },
         selection: EditorSelection.range(
-          sel.from + marker.length,
-          sel.from + marker.length + text.length,
+          sel.from + mLen,
+          sel.from + mLen + text.length,
         ),
       })
     }

@@ -16,7 +16,10 @@ export function FormatBubble({ x, y, headingLevel, onFormat }: Props) {
     <div
       className="fmt-bubble"
       style={{ left: x, top: y }}
-      onMouseDown={e => e.preventDefault()}
+      onMouseDown={e => {
+        // Allow select elements to receive native mousedown (needed to open the dropdown)
+        if ((e.target as HTMLElement).tagName !== 'SELECT') e.preventDefault()
+      }}
     >
       {/* ── Heading controls ─────────────────────────────── */}
       <button
