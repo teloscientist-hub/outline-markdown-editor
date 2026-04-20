@@ -69,9 +69,11 @@ function OutlineNodeItem({
       </button>
       <div
         className="outline-node-label"
+        onMouseDown={e => e.preventDefault()}
         onClick={e => onNodeClick(node.id, e)}
         {...attributes}
         {...listeners}
+        tabIndex={-1}
         title={node.text}
       >
         {node.text}
@@ -149,9 +151,11 @@ export function OutlinePane() {
 
   // ── Click handler ─────────────────────────────────────────────────────────
   const handleNodeClick = useCallback((id: string, e: MouseEvent) => {
-    // Return keyboard focus to the pane so Tab / Shift-Tab reach handleKeyDown
-    // (dnd-kit's {…attributes} gives each label tabIndex={0}, stealing focus)
-    requestAnimationFrame(() => paneRef.current?.focus())
+    // Synchronously move keyboard focus to the pane div.
+    // dnd-kit injects tabIndex={0} via {...attributes}; overriding it with tabIndex={-1}
+    // and calling preventDefault on mousedown keeps focus off the label. This call
+    // is the safety net that handles any remaining edge cases.
+    paneRef.current?.focus()
 
     if (e.shiftKey && anchorId) {
       // Range select: all visible headings between anchor and clicked item (inclusive)
