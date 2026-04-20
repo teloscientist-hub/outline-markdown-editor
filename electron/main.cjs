@@ -192,13 +192,9 @@ function buildMenu() {
           label: 'New Window',
           accelerator: 'CmdOrCtrl+N',
           click: () => {
-            const p = readPrefs();
-            if (p.startup === 'blank') {
-              const w = createWindow(null);
-              windowData.set(w.id, { filePath: null, forceBlank: true });
-            } else {
-              createWindow(null);
-            }
+            // New Window always opens blank — startup pref only applies at launch.
+            const w = createWindow(null);
+            windowData.set(w.id, { filePath: null, forceBlank: true });
           },
         },
         { label: 'Open\u2026',     accelerator: 'CmdOrCtrl+O',       click: () => send('menu:open') },

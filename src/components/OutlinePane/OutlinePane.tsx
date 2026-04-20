@@ -100,6 +100,7 @@ export function OutlinePane() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [anchorId, setAnchorId]       = useState<string | null>(null)
 
+  const paneRef   = useRef<HTMLDivElement>(null)
   const treeRef   = useRef<HTMLDivElement>(null)
   const searchRef = useRef<HTMLInputElement>(null)
 
@@ -148,6 +149,10 @@ export function OutlinePane() {
 
   // ── Click handler ─────────────────────────────────────────────────────────
   const handleNodeClick = useCallback((id: string, e: MouseEvent) => {
+    // Return keyboard focus to the pane so Tab / Shift-Tab reach handleKeyDown
+    // (dnd-kit's {…attributes} gives each label tabIndex={0}, stealing focus)
+    requestAnimationFrame(() => paneRef.current?.focus())
+
     if (e.shiftKey && anchorId) {
       // Range select: all visible headings between anchor and clicked item (inclusive)
       const visibleIds = visibleHeadingsRef.current.map(h => h.id)
@@ -302,7 +307,7 @@ export function OutlinePane() {
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="outline-pane" onKeyDown={handleKeyDown} tabIndex={0}>
+    <div className="outline-pane" ref={paneRef} onKeyDown={handleKeyDown} tabIndex={0}>
 
       {/* Search */}
       <div className="outline-search-bar">
