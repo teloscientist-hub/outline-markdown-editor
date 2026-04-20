@@ -1,6 +1,6 @@
 # Outline Markdown Editor — User's Manual
 
-Welcome to **Outline Markdown Editor (OME)**. This manual walks you through every feature in plain language, step by step. Whether you're new to markdown or a seasoned writer, you'll find everything you need to get productive quickly.
+Welcome to **Outline Markdown Editor (OME)**. This manual covers every action you can take in the app, from opening a file to batch-promoting a selection of headings. Use the Table of Contents to jump to any section.
 
 ---
 
@@ -15,12 +15,14 @@ Welcome to **Outline Markdown Editor (OME)**. This manual walks you through ever
 7. [Formatting Text](#7-formatting-text)
 8. [Folding and Hiding Sections](#8-folding-and-hiding-sections)
 9. [Reordering Sections](#9-reordering-sections)
-10. [Multi-Window Workflow](#10-multi-window-workflow)
-11. [Pane Layout and View Controls](#11-pane-layout-and-view-controls)
-12. [Document Info](#12-document-info)
-13. [Preferences](#13-preferences)
-14. [Help Menu](#14-help-menu)
-15. [Frequently Asked Questions](#15-frequently-asked-questions)
+10. [Multi-Select in the Outline](#10-multi-select-in-the-outline)
+11. [Multi-Window Workflow](#11-multi-window-workflow)
+12. [Pane Layout and View Controls](#12-pane-layout-and-view-controls)
+13. [Document Info](#13-document-info)
+14. [Preferences](#14-preferences)
+15. [Help Menu](#15-help-menu)
+16. [Keyboard Shortcut Reference](#16-keyboard-shortcut-reference)
+17. [Frequently Asked Questions](#17-frequently-asked-questions)
 
 ---
 
@@ -28,34 +30,23 @@ Welcome to **Outline Markdown Editor (OME)**. This manual walks you through ever
 
 ### Opening the App
 
-Launch **Outline Markdown Editor** from your Applications folder or the Dock. When it opens, OME will do one of the following depending on your Preferences setting:
-
-- Open the built-in README document
-- Open a blank, untitled document
-- Reopen the last file you were working on
-
-You can change this behavior any time in **Preferences** (see [Section 13](#13-preferences)).
+Launch **Outline Markdown Editor** from your Applications folder or the Dock. On first launch you'll see the built-in README document. You can change this behavior in **Preferences** (see [Section 14](#14-preferences)).
 
 ### Opening a File
 
-**From the menu:**
-1. Go to **File > Open** (or press **Cmd+O**).
-2. A file picker will appear. Navigate to your file.
-3. Select a `.md`, `.markdown`, or `.txt` file and click **Open**.
+**From the menu:** Go to **File > Open** (⌘O), choose a `.md`, `.markdown`, or `.txt` file, and click Open.
 
-**From Finder:**
-Simply double-click any `.md` or `.markdown` file. OME is registered as the default handler for these file types and will open it automatically. You can also right-click a file in Finder and choose **Open With > Outline Markdown Editor**.
+**From Finder:** Double-click any `.md` or `.markdown` file. OME is registered as the default handler and opens it automatically.
 
-**From Recent Files:**
-Go to **File > Open Recent** to see a submenu listing your last 10 opened files. Click any file to reopen it instantly. Choose **Clear Recent Files** at the bottom of the submenu to wipe the list.
+**From Recent Files:** Go to **File > Open Recent** to see your last 10 opened files. Click any name to reopen it instantly.
 
 ### Your First Look
 
-Once a file is open, you'll see three panels side by side:
+Once a file is open you'll see three panels side by side:
 
-- **Left (Outline):** a tree of all the headings in your document
-- **Center (Markdown):** the raw markdown source — this is where you type
-- **Right (Display):** a live rendered preview of your document
+- **Left — Outline:** every heading in the document shown as a collapsible tree
+- **Center — Markdown:** the raw markdown source — this is where you type
+- **Right — Display:** a live rendered preview
 
 All three panels stay in sync as you work.
 
@@ -63,362 +54,527 @@ All three panels stay in sync as you work.
 
 ## 2. The Three Panes
 
-OME's three panes work together. When you click a heading in the Outline, both the Markdown and Display panes scroll to that section. When you scroll in the Markdown pane, the Display pane follows.
-
 ### Resizing Panes
 
-Click and drag the thin vertical divider between any two panes to resize them. You can make the Markdown pane wider for focused editing, or enlarge the Display pane to review your formatted output.
+Drag the thin vertical divider between any two panes. Release to lock the new size.
 
 ### Hiding and Showing Panes
 
-You can hide any pane you don't need:
-
 | Action | Shortcut |
 |--------|----------|
-| Toggle Outline pane | **Cmd+1** |
-| Toggle Markdown pane | **Cmd+2** |
-| Toggle Display pane | **Cmd+3** |
-| Restore all three panes | **Cmd+0** |
+| Toggle Outline pane | ⌘1 |
+| Toggle Markdown pane | ⌘2 |
+| Toggle Display pane | ⌘3 |
+| Restore all three panes | ⌘0 |
 
-You can also use the toolbar buttons at the top of the window to toggle each pane.
+You can also click the **1 / 2 / 3** toolbar buttons at the top of the window.
+
+### Common Layouts
+
+- **Distraction-free writing:** Hide Outline (⌘1) and Display (⌘3) — only the editor remains.
+- **Review mode:** Hide Markdown (⌘2) — Outline and Preview side by side.
+- **Structural editing:** Keep Outline and Markdown, hide Display.
 
 ---
 
 ## 3. Working with Files
 
-### Creating a New Window
+### New Window
 
-Go to **File > New Window** or press **Cmd+N**. A completely independent editor window opens. Each window has its own file, its own undo history, and its own pane layout. You can have as many windows open at once as you like.
+**File > New Window** (⌘N) opens a completely blank, independent editor window. Each window has its own file, undo history, and pane layout. You can have as many windows open as you like.
 
-### Saving a File
+### Saving
 
-- **Save (Cmd+S):** Saves the file in place. If the document has never been saved, a Save dialog will appear so you can choose a location and filename.
-- **Save As (Cmd+Shift+S):** Saves a copy of the document with a new name and/or in a new location. The newly saved copy becomes the active document.
+- **Save (⌘S):** Saves in place. On a new document a Save dialog appears so you can choose a filename and location.
+- **Save As (⌘⇧S):** Saves a copy under a new name and/or location. The new copy becomes the active document.
+- **Auto-save:** Once a file has been saved to disk at least once, OME automatically saves it 2 seconds after you stop typing. Auto-save does not apply to brand-new, unsaved documents.
 
-### Auto-Save
+### Open Recent
 
-Once a file has been saved to disk at least once, OME will automatically save it **2 seconds after you stop typing**. You don't need to do anything — just keep writing. A brief indicator may appear to confirm the save. Auto-save does not apply to brand-new, unsaved documents; use **Cmd+S** to save those first.
-
-### Opening Recent Files
-
-**File > Open Recent** shows your 10 most recently opened files. Click any filename to reopen it. To clear the list, choose **Clear Recent Files** at the bottom of the submenu.
+**File > Open Recent** lists your 10 most recently opened files. **Clear Recent Files** at the bottom of the submenu wipes the list.
 
 ---
 
 ## 4. The Outline Pane
 
-The Outline pane is one of OME's most powerful features. It shows the structure of your document as a tree of headings, and lets you navigate, reorganize, and control which parts of the document are visible.
+The Outline pane is the structural heart of OME. It shows your document as a heading tree and gives you navigation, reorganisation, search, and view-filtering tools.
 
-### Navigating with the Outline
+### Navigating
 
-**Click any heading** in the Outline pane to jump directly to that section. The Markdown pane will scroll to that heading, and the Display pane will follow. This is the fastest way to move around long documents.
+**Click any heading** to jump to that section. The Markdown and Display panes both scroll to it.
+
+### Searching Headings
+
+Type in the **search box** at the top of the Outline pane to filter the heading list to only those that match your query. Press **/** or **F** while the outline pane is focused to jump to the search box. Press **Escape** to clear the search.
+
+### Keyboard Navigation
+
+Click anywhere in the Outline pane to give it keyboard focus, then:
+
+| Key | Action |
+|-----|--------|
+| ↑ / ↓ | Move the keyboard highlight up/down the list |
+| Enter | Jump to the highlighted heading |
+| → | Expand a collapsed section |
+| ← | Collapse an expanded section |
+| Tab | Demote the focused heading one level |
+| ⇧Tab | Promote the focused heading one level |
+| / or F | Focus the search box |
+| Escape | Clear search / clear selection |
 
 ### The Depth Filter
 
-At the top of the Outline pane is a **depth filter** control. Use it to choose how many levels of headings to display in the outline tree:
+The depth filter in the Outline pane toolbar controls how many heading levels are shown:
 
-- **H1** — show only top-level headings
-- **H1–H2** — show H1 and H2
-- **H1–H3**, **H1–H4**, **H1–H5**, **All** — progressively show more heading levels
+- **H1** — only top-level headings
+- **H1–H2**, **H1–H3**, … **H1–H6** — progressively more levels
+- **All** — every heading
 
-This doesn't hide anything in the document itself — it only controls how much detail you see in the Outline tree. It's useful for getting a high-level view of a long document without losing yourself in the subheadings.
+This only changes what's visible in the outline tree; it does not hide document content.
 
-> **Tip:** If you demote an H1 to H2 while the depth filter is set to "H1 only," OME will automatically expand the filter to "H1–H2" so the heading you just changed doesn't disappear from the outline.
+> **Tip:** If you demote a heading to a level currently filtered out, OME automatically expands the depth filter so the heading stays visible.
 
 ### Headings Only Mode
 
-Toggle **Headings Only** mode to hide all body text and show only headings across all three panes. This is a great way to review and restructure your document's outline without the distraction of body copy. Toggle it off to bring all your content back.
+Toggle **Headings Only** mode to hide all body text across all three panes, showing only headings. Great for reviewing or restructuring document structure without body copy distraction. Toggle it off to restore all content.
 
-### Promoting and Demoting Headings from the Outline
+### Folding Sections
 
-With a heading selected in the Outline pane:
+Click the **▶ / ▼ triangle** next to any heading to collapse or expand its section. When a section is folded:
 
-- Press **Tab** to **demote** it one level (e.g., H1 becomes H2, H2 becomes H3).
-- Press **Shift+Tab** to **promote** it one level (e.g., H2 becomes H1).
+- Its content is hidden in the Markdown pane
+- Its content is hidden in the Display pane
+- Sub-headings disappear from the Outline pane
 
-The change is applied to the heading in the Markdown source, and the outline tree updates immediately.
+Click the triangle again to expand.
+
+### Promoting and Demoting a Single Heading
+
+With keyboard focus on a heading in the Outline pane:
+
+- **Tab** — demote one level (H1 → H2, H2 → H3, …)
+- **⇧Tab** — promote one level (H2 → H1, H3 → H2, …)
+
+The entire subtree (all sub-headings and their content) moves with the heading, keeping relative depths intact.
 
 ---
 
 ## 5. The Markdown Pane
 
-The Markdown pane is where you write and edit. It's powered by CodeMirror 6, a professional-grade code editor adapted for markdown.
-
-### What You'll See
-
-- **Line numbers** appear in the left gutter.
-- **Syntax highlighting** colors and styles your markdown as you type:
-  - Headings are displayed at different visual sizes
-  - Bold and italic text are styled
-  - Code spans and code blocks are visually distinct
-  - Links are highlighted
-  - Blockquotes are indented and styled
-
 ### Typing and Editing
 
-Just click anywhere in the Markdown pane and start typing. All standard text editing shortcuts work: Cmd+Z to undo, Cmd+Shift+Z to redo, Cmd+A to select all, etc.
+Click anywhere in the Markdown pane and start writing. All standard shortcuts work: ⌘Z undo, ⌘⇧Z redo, ⌘A select all, etc.
+
+### Syntax Highlighting
+
+As you type, OME styles your markdown:
+
+- Headings are shown at visually distinct sizes
+- Bold and italic text are rendered styled
+- Code spans and blocks are highlighted
+- Links and blockquotes are styled
 
 ### Promoting and Demoting Headings
 
-With your cursor anywhere on a heading line:
+With your cursor on any heading line:
 
-- **Cmd+[** — promote the heading one level (H2 → H1, H3 → H2, etc.)
-- **Cmd+]** — demote the heading one level (H1 → H2, H2 → H3, etc.)
+- **⌘[** — promote one level (## → #)
+- **⌘]** — demote one level (# → ##)
 
-The outline and display panes update immediately.
+The heading and all its children shift together.
 
 ### Moving Sections Up and Down
 
 With your cursor anywhere inside a section:
 
-- **Alt+Up** — move the entire section (the heading plus all its body content) up above the previous section.
-- **Alt+Down** — move the entire section down below the next section.
+- **⌥↑** — move the section up above the previous sibling section
+- **⌥↓** — move the section down below the next sibling section
 
-This is the fastest way to reorder your document without cutting and pasting.
+The heading plus all its body text and sub-headings move as a unit.
 
 ### Scroll Sync
 
-As you scroll in the Markdown pane, the Display pane scrolls in proportion. You'll always see the rendered version of whatever part of the source you're looking at.
+The Display pane scrolls in proportion as you scroll the Markdown pane. You always see the rendered version of what you're currently editing.
 
 ---
 
 ## 6. The Display Pane
 
-The Display pane shows your markdown rendered as it would appear on a webpage or in a document reader. It supports **GitHub Flavored Markdown (GFM)**, which includes:
+The Display pane renders your markdown as it would appear on a webpage. It supports **GitHub Flavored Markdown (GFM)**:
 
-- **Tables** — markdown tables render with proper formatting
+- **Tables** — render with proper formatting
 - **Task lists** — `- [ ]` and `- [x]` render as checkboxes
 - **Strikethrough** — `~~text~~` renders with a line through it
 - **Autolinks** — bare URLs become clickable links
 
-The Display pane is read-only. To make changes, edit the Markdown pane.
+### Selecting Text and Formatting from the Display Pane
 
-**Scroll sync:** The Display pane stays in sync with the Markdown pane as you scroll, so you can always see the rendered version of what you're editing.
+You can select text in the Display pane and apply formatting using the floating Format Bubble (see [Section 7](#7-formatting-text)). The format is applied to the corresponding text in the Markdown pane.
 
-**Fold state:** When you fold a section in the Outline pane, it's hidden in the Display pane too.
+To select a heading for formatting, click and drag across the heading text in the Display pane.
+
+### Click to Navigate
+
+Click any **heading** in the Display pane to scroll the Markdown pane to that section.
+
+### Fold State
+
+When you fold a section in the Outline pane, its content is hidden in the Display pane too.
 
 ---
 
 ## 7. Formatting Text
 
-OME gives you three ways to apply formatting: keyboard shortcuts, the Format menu, and the floating selection bubble.
+OME offers three ways to apply formatting: keyboard shortcuts, the Format menu, and the floating Format Bubble.
 
-### Keyboard Shortcuts
+### The Floating Format Bubble
 
-These shortcuts work in the Markdown pane:
+The Format Bubble appears automatically whenever you **select text** in either the Markdown pane or the Display pane:
+
+1. Click and drag to select any text (or double-click to select a word).
+2. A small toolbar appears **above your selection** with these controls:
+
+```
+[ H− ]  [ ─ H ▾ ]  [ H+ ]  |  [ B ]  [ I ]  |  [ • ]  [ 1. ]  [ ☐ ]
+```
+
+| Button | Action |
+|--------|--------|
+| **H−** | Promote heading one level (disabled if not a heading or already H1) |
+| **─ H ▾** | Dropdown: choose H1–H6, or select "— H" to remove the heading |
+| **H+** | Demote heading one level (disabled if already H6) |
+| **B** | Bold (toggle) |
+| **I** | Italic (toggle) |
+| **•** | Bullet list item |
+| **1.** | Numbered list item |
+| **☐** | Todo / checkbox item |
+
+The bubble disappears when you click elsewhere or press a key.
+
+**Toggling formats off:** Click the same button on already-formatted text to remove the format. Bold, italic, and heading formats are all toggles.
+
+### Keyboard Shortcuts (Markdown Pane)
 
 | Format | Shortcut |
 |--------|----------|
-| **Bold** | Cmd+B |
-| *Italic* | Cmd+I |
-| Heading 1 | Cmd+Opt+1 |
-| Heading 2 | Cmd+Opt+2 |
-| Heading 3 | Cmd+Opt+3 |
-| Heading 4 | Cmd+Opt+4 |
-| Heading 5 | Cmd+Opt+5 |
-| Heading 6 | Cmd+Opt+6 |
-| Bullet list item | Cmd+Shift+8 |
-| Numbered list item | Cmd+Shift+7 |
-| Todo item | Cmd+Shift+T |
+| Bold | ⌘B |
+| Italic | ⌘I |
+| Heading 1 | ⌘⌥1 |
+| Heading 2 | ⌘⌥2 |
+| Heading 3 | ⌘⌥3 |
+| Heading 4 | ⌘⌥4 |
+| Heading 5 | ⌘⌥5 |
+| Heading 6 | ⌘⌥6 |
+| Promote heading | ⌘[ |
+| Demote heading | ⌘] |
+| Bullet list item | ⌘⇧8 |
+| Numbered list item | ⌘⇧7 |
+| Todo / checkbox | ⌘⇧T |
+| Move section up | ⌥↑ |
+| Move section down | ⌥↓ |
+| Document Info | ⌘⇧I |
 
 ### The Format Menu
 
-The **Format** menu (between Edit and View in the menu bar) contains every formatting option listed above. Click any item to apply it to your current selection or cursor position.
-
-### The Floating Selection Bubble
-
-1. Click and drag to **select any text** in the Markdown pane.
-2. A small toolbar will appear **above your selection** with buttons: H1, H2, H3, Bold, Italic, Bullet, Numbered, Todo.
-3. Click any button to apply that format.
-4. Click the same button again on already-formatted text to **remove** the format (all formats toggle).
-
-The bubble disappears when you click elsewhere or deselect the text.
-
-### Toggling Formats Off
-
-Every formatting command is a toggle. If your cursor is on bold text and you press **Cmd+B**, the bold markers are removed. If you select an H2 heading and press **Cmd+Opt+2**, the heading markers are removed and the line becomes plain text. This applies to all format operations, including the selection bubble.
+The **Format** menu (between Edit and View in the menu bar) contains all the formatting options above. Every item can also be triggered by its keyboard shortcut.
 
 ---
 
 ## 8. Folding and Hiding Sections
 
-Folding lets you temporarily collapse sections you're not working on, keeping your document tidy and your focus sharp.
+### Folding a Single Section
 
-### How to Fold a Section
+In the Outline pane, click the **▶ triangle** next to any heading. The section collapses — its body text and sub-headings are hidden in all three panes.
 
-1. Look at the **Outline pane** on the left.
-2. Find the heading you want to fold.
-3. Click the **▶** (triangle) to the left of the heading.
-4. The triangle turns to ▼ when the section is folded.
+Click the **▼ triangle** (or press **→** with keyboard focus on that heading) to expand.
 
-When a section is folded:
-- Its content is hidden in the **Outline pane** (subheadings disappear)
-- The body text is hidden in the **Markdown pane**
-- The content is hidden in the **Display pane**
+### Fold All / Unfold All
 
-### How to Unfold
-
-Click the **▼** triangle next to a folded heading. The content reappears in all three panes.
+Right-click in the Outline pane (or use the View menu) for fold-all and unfold-all options.
 
 ### Headings Only Mode
 
-For a broader view, toggle **Headings Only** mode in the Outline pane. This hides all body text across all three panes, leaving only headings visible. It's like folding every section at once. Toggle it off to restore all content.
+Toggling **Headings Only** hides all body text in the Markdown, Display, and Outline panes at once — more aggressive than folding individual sections. It's like folding every section simultaneously.
+
+### Depth Filter
+
+The depth filter hides sub-headings beyond a chosen level from the Outline tree (but does not hide them from the Markdown or Display panes unless Headings Only mode is also on).
 
 ---
 
 ## 9. Reordering Sections
 
-OME gives you two ways to move sections around: drag-and-drop in the Outline pane, and keyboard shortcuts in the Markdown pane.
-
 ### Drag-and-Drop in the Outline Pane
 
-1. In the Outline pane, hover over the heading you want to move.
-2. Click and hold, then **drag** the heading up or down in the list.
+1. Hover over the heading you want to move.
+2. Click and hold, then **drag** it up or down in the list.
 3. Release to drop it in the new position.
 
-The **entire section** moves — heading, subheadings, and all body content beneath it. This is the most visual way to restructure a document.
+The drag overlay shows the heading text and a badge like **+3 sub-headings**, so you always know how much content is moving. The **entire section** moves — heading, all sub-headings, and all body content beneath it.
 
-### Keyboard Shortcut in the Markdown Pane
+### Keyboard (Markdown Pane)
 
-1. Click anywhere inside the section you want to move.
-2. Press **Alt+Up** to move it above the preceding section.
-3. Press **Alt+Down** to move it below the following section.
+- **⌥↑** — move section up
+- **⌥↓** — move section down
 
-Again, the entire section (heading + body) moves as a unit.
+Moves the section the cursor is in above/below its sibling.
 
 ---
 
-## 10. Multi-Window Workflow
+## 10. Multi-Select in the Outline
 
-OME supports having multiple documents open at the same time, each in its own window.
+The Outline pane supports selecting multiple headings at once so you can promote, demote, or move them as a group.
+
+### Selecting a Heading and Its Subtree (Single Click)
+
+**Click any heading** in the Outline pane. That heading and all of its sub-headings are instantly highlighted in blue. This makes the full subtree visible so you know exactly what will be affected before you act.
+
+### Range Selection (Shift-Click)
+
+1. Click the first heading in the range you want to select. It highlights together with its subtree.
+2. **Shift-click** a different heading further up or down the list.
+3. All visible headings between the first and second click are selected and highlighted.
+
+You can continue shift-clicking to extend or change the range. The original click is the fixed anchor.
+
+### Acting on a Selection
+
+Once headings are highlighted, you can:
+
+**Promote / Demote — Keyboard:**
+- **⇧Tab** — promote all selected headings one level (H2 → H1, H3 → H2, etc.)
+- **Tab** — demote all selected headings one level (H1 → H2, H2 → H3, etc.)
+- All selected headings shift by exactly one level, preserving their relative depths.
+
+**Promote / Demote — Selection Bar:**
+When 2 or more headings are selected, a blue bar appears just below the search box showing:
+
+```
+3 headings selected   [ H− ]  [ H+ ]  [ ✕ ]
+```
+
+- **H−** — promote all selected headings
+- **H+** — demote all selected headings
+- **✕** — clear the selection
+
+**Clearing the Selection:**
+- Click an empty area of the Outline pane
+- Press **Escape**
+- Click the **✕** in the selection bar
+
+### Notes on Multi-Select
+
+- Dragging moves only the heading you grab (along with its full section content including sub-headings). Moving multiple discontiguous sections by drag simultaneously is not currently supported — use Tab/⇧Tab for batch indenting instead.
+- When Tab/⇧Tab operates on a subtree selection (single click), the relative depths within the subtree are preserved (the whole group shifts together by one level).
+
+---
+
+## 11. Multi-Window Workflow
 
 ### Opening a New Window
 
-Go to **File > New Window** (or press **Cmd+N**). A fresh editor window appears. You can open different files in each window.
+**File > New Window** (⌘N) always opens a blank, untitled document in a new independent window. Each window has its own file, undo history, and layout.
+
+### Opening a File in an Existing Window
+
+Use **⌘O** in any window to open a file in that window, replacing its current content (after a save prompt if needed).
 
 ### Switching Between Windows
 
-Use the **Window menu** in the menu bar. It lists all your open documents by filename. Click any name to bring that window to the front. You can also use the standard macOS **Cmd+`** (backtick) shortcut to cycle between windows of the same application.
+Use the **Window** menu to see all open documents by filename. Click any name to bring that window to the front. You can also press **⌘`** (backtick) to cycle between OME windows.
 
 ---
 
-## 11. Pane Layout and View Controls
+## 12. Pane Layout and View Controls
 
-### Toggling Individual Panes
+### Toggle Shortcuts
 
-| Pane | Toggle Shortcut |
-|------|----------------|
-| Outline (left) | Cmd+1 |
-| Markdown (center) | Cmd+2 |
-| Display (right) | Cmd+3 |
-| Restore all | Cmd+0 |
+| Pane | Shortcut |
+|------|----------|
+| Outline (left) | ⌘1 |
+| Markdown (center) | ⌘2 |
+| Display (right) | ⌘3 |
+| Restore all | ⌘0 |
 
-You can also click the corresponding toolbar buttons at the top of the window.
+### Toolbar Buttons
 
-### Resizing Panes
-
-Drag the vertical divider between any two panes. There's no minimum size enforced — you can give nearly all the space to one pane if you prefer a more focused layout.
-
-### Common Layouts
-
-- **Distraction-free writing:** Hide the Outline (Cmd+1) and Display (Cmd+3) panes, leaving only the Markdown editor.
-- **Review mode:** Hide the Markdown pane (Cmd+2), leaving the Outline and Display side by side.
-- **Structural editing:** Use the Outline and Markdown panes with Display hidden.
+The toolbar at the top of each window has:
+- **Open** — open a file (⌘O)
+- **Save** — save (⌘S)
+- **1 / 2 / 3** — toggle Outline / Markdown / Display panes
+- **Depth selector** — filter the outline depth (H1 through All)
+- **Headings Only** toggle
 
 ---
 
-## 12. Document Info
+## 13. Document Info
 
-**File > Document Info** (or **Cmd+Shift+I**) opens a modal panel with detailed statistics about the current document:
+**File > Document Info** (⌘⇧I) opens a statistics panel for the current document:
 
-| Stat | Description |
-|------|-------------|
-| Word count | Total words in the document |
-| Character count | Total characters (including spaces) |
-| Line count | Total number of lines |
+| Statistic | Description |
+|-----------|-------------|
+| Word count | Total words |
+| Character count | Total characters (with spaces) |
+| Characters (no spaces) | Characters excluding spaces |
+| Line count | Total lines |
 | Heading count | Number of headings at all levels |
 | Estimated pages | Approximate page count at standard font size |
-| Reading time | Estimated time to read at average reading speed |
+| Reading time | Estimated at average reading pace |
 | File path | Full path to the file on disk |
-| Created date | When the file was first created |
-| Modified date | When the file was last saved |
-| File size | Size of the file on disk |
+| Created | When the file was first created |
+| Last modified | When the file was last saved |
+| File size | Size on disk |
 
-Close the panel by clicking the Close button or pressing Escape.
+Press **Escape** or click the close button to dismiss.
 
 ---
 
-## 13. Preferences
+## 14. Preferences
 
-Open Preferences with **Cmd+,** or via the application menu.
+Open with **⌘,** or the application menu.
 
 ### On Launch
 
-Choose what OME does when you start the application:
+Choose what OME does when you start the app:
 
-- **Open README document** — loads the built-in README file so you have something to read right away.
-- **Open blank document** — starts with an empty, untitled document.
-- **Open most recent document** — automatically reopens the last file you were editing, picking up right where you left off.
+- **Open README document** — loads the built-in welcome guide
+- **Open blank document** — starts with an empty untitled document
+- **Open most recent document** — reopens the last file you had open
 
----
-
-## 14. Help Menu
-
-The Help menu provides quick access to OME's built-in documentation — opening the documents directly in the editor so you can read them like any other markdown file.
-
-- **Feature Overview** — opens the Feature Overview document, which summarizes all of OME's features.
-- **User's Manual** — opens this User's Manual in the editor.
-
-You can read, search, copy from, or even edit these documents. They're just markdown files.
+> **Note:** This setting only affects the very first window when the app launches. **File > New Window** (⌘N) always opens blank, regardless of this setting.
 
 ---
 
-## 15. Frequently Asked Questions
+## 15. Help Menu
 
-### "A heading I just changed disappeared from the Outline pane."
+The Help menu opens OME's built-in documentation directly in the editor as readable markdown files:
 
-This usually happens when you **demote a heading to a level that's filtered out** by the depth filter. For example, if your depth filter is set to "H1 only" and you demote an H1 to H2, the H2 level isn't shown. OME normally adjusts the depth filter automatically when you do this via the outline or the Markdown pane shortcut — but if it didn't, click the depth filter control and expand it to show H1–H2.
+- **Feature Overview** — a summary of all major features
+- **User's Manual** — this document
 
-### "How do I get all my panes back?"
-
-Press **Cmd+0** (zero). This restores all three panes to their default visible state.
-
-### "My file isn't auto-saving. Why?"
-
-Auto-save only works for files that have **already been saved to disk at least once**. If your document is new and unsaved ("Untitled"), press **Cmd+S** to save it to a location first. After that, auto-save will take over.
-
-### "I accidentally folded a section and can't find my content."
-
-Look in the Outline pane for a heading with a **▼** triangle — that indicates a folded (hidden) section. Click the triangle to unfold it and restore the content. If you're not sure which section is folded, toggle **Headings Only** mode off (if it was on) and then scan the outline for folded markers.
-
-### "How do I undo a drag-and-drop reorder?"
-
-Press **Cmd+Z** in the Markdown pane to undo. All operations — including drag-and-drop reorders, promote/demote actions, and section moves — are recorded in the undo history.
-
-### "Can I have two different documents open at the same time?"
-
-Yes. Use **File > New Window** (**Cmd+N**) to open a second window, then open a different file in it using **Cmd+O**. Each window is completely independent.
-
-### "How do I remove a format I applied by mistake?"
-
-Every format in OME is a toggle. Place your cursor in the formatted text (or select it) and press the same shortcut again. For example, press **Cmd+B** on bold text to remove the bold. The same works in the floating selection bubble and the Format menu.
-
-### "What markdown features does the Display pane support?"
-
-The Display pane renders standard CommonMark markdown plus **GitHub Flavored Markdown (GFM)** extensions: tables, task lists (`- [ ]` / `- [x]`), strikethrough (`~~text~~`), and autolinks.
-
-### "The Outline pane is empty even though I have content."
-
-The Outline pane only shows **headings** (lines starting with `#`, `##`, `###`, etc.). If your document has no headings, the outline will be blank. Add a heading with **Cmd+Opt+1** (for H1) or type `# Your Heading Title` at the start of a line.
-
-### "How do I open a .txt file?"
-
-Go to **File > Open** (**Cmd+O**) and select your `.txt` file. OME supports `.md`, `.markdown`, and `.txt` files. Note that `.txt` files are not registered as a default file type in Finder, so you won't be able to double-click them directly — use File > Open instead.
-
-### "Where are my files saved?"
-
-Files are saved wherever you chose when you first used **File > Save** or **File > Save As**. To see the exact path of the current file, open **File > Document Info** (**Cmd+Shift+I**) — the full file path is shown there.
+You can read, search, copy from, or edit these files just like any other document.
 
 ---
 
-*For a quick reference of all features and shortcuts, see the [Feature Overview](Feature-Overview.md).*
+## 16. Keyboard Shortcut Reference
+
+### File
+
+| Action | Shortcut |
+|--------|----------|
+| New Window | ⌘N |
+| Open | ⌘O |
+| Save | ⌘S |
+| Save As | ⌘⇧S |
+| Document Info | ⌘⇧I |
+
+### Edit
+
+| Action | Shortcut |
+|--------|----------|
+| Undo | ⌘Z |
+| Redo | ⌘⇧Z |
+| Cut | ⌘X |
+| Copy | ⌘C |
+| Paste | ⌘V |
+| Select All | ⌘A |
+| Find | ⌘F |
+
+### Format (Markdown Pane)
+
+| Action | Shortcut |
+|--------|----------|
+| Bold | ⌘B |
+| Italic | ⌘I |
+| Heading 1 | ⌘⌥1 |
+| Heading 2 | ⌘⌥2 |
+| Heading 3 | ⌘⌥3 |
+| Heading 4 | ⌘⌥4 |
+| Heading 5 | ⌘⌥5 |
+| Heading 6 | ⌘⌥6 |
+| Promote heading | ⌘[ |
+| Demote heading | ⌘] |
+| Bullet list | ⌘⇧8 |
+| Numbered list | ⌘⇧7 |
+| Todo item | ⌘⇧T |
+| Move section up | ⌥↑ |
+| Move section down | ⌥↓ |
+
+### View / Panes
+
+| Action | Shortcut |
+|--------|----------|
+| Toggle Outline | ⌘1 |
+| Toggle Markdown | ⌘2 |
+| Toggle Display | ⌘3 |
+| Show all panes | ⌘0 |
+
+### Outline Pane (when focused)
+
+| Key | Action |
+|-----|--------|
+| ↑ / ↓ | Navigate headings |
+| → | Expand section |
+| ← | Collapse section |
+| Enter | Jump to heading |
+| Tab | Demote heading (or demote all selected) |
+| ⇧Tab | Promote heading (or promote all selected) |
+| ⇧Click | Range-select headings |
+| / or F | Focus search box |
+| Escape | Clear search / clear selection |
+
+---
+
+## 17. Frequently Asked Questions
+
+### A heading I just changed disappeared from the Outline pane.
+
+Most likely you demoted it to a level filtered out by the depth filter. Expand the depth filter control to include the new level, or set it to **All**.
+
+### How do I get all my panes back?
+
+Press **⌘0** (zero). All three panes restore to their default visible state.
+
+### My file isn't auto-saving. Why?
+
+Auto-save only works for files **already saved to disk at least once**. Press **⌘S** to give a new document a filename and location first.
+
+### I accidentally folded a section and can't find my content.
+
+Look in the Outline pane for a heading with a **▼** triangle — that's a folded section. Click the triangle to expand it. If you're not sure which one is folded, scan the outline for headings that have no visible children below them when you'd expect some.
+
+### How do I undo a drag-and-drop reorder?
+
+Press **⌘Z** in the Markdown pane. All operations — drag reorder, promote/demote, section moves — are recorded in the undo history.
+
+### Can I have two different documents open at the same time?
+
+Yes. Use **File > New Window** (⌘N) to open a second window, then open a file in it with **⌘O**.
+
+### How do I remove a format I applied by mistake?
+
+Every format is a toggle. Press the same shortcut again (e.g., ⌘B on bold text removes bold), or use the Format Bubble button on the selected text.
+
+### The floating Format Bubble doesn't appear.
+
+Make sure you have **text selected** — the bubble only appears when there is an active text selection. Click and drag to select, or double-click a word.
+
+### The Outline pane is empty even though I have content.
+
+The Outline only shows **headings** (lines starting with `#`, `##`, etc.). If your document has no headings the outline will be blank. Add one with ⌘⌥1 or type `# Your Title` on a new line.
+
+### What markdown does the Display pane support?
+
+Standard CommonMark plus **GitHub Flavored Markdown (GFM)**: tables, task lists (`- [ ]` / `- [x]`), strikethrough (`~~text~~`), and autolinks.
+
+### Where are my files saved?
+
+Wherever you chose when you first used **File > Save**. To find the path of the current file, open **File > Document Info** (⌘⇧I).
+
+### New Window vs. opening a file in the current window — what's the difference?
+
+**File > New Window** (⌘N) always opens a fresh blank document in a brand-new window. **File > Open** (⌘O) in an existing window replaces that window's content with the file you choose (after a save prompt if there are unsaved changes).
+
+---
+
+*For a quick feature summary, see the [Feature Overview](Feature-Overview.md).*
