@@ -86,10 +86,11 @@ function OutlineNodeItem({
 
 export function OutlinePane() {
   const {
-    headings, foldedIds, depthMode, activeHeadingId,
+    content, headings, foldedIds, depthMode, activeHeadingId,
     toggleFold, setActiveHeading, moveSection,
     promoteSectionById, demoteSectionById,
     promoteMultipleById, demoteMultipleById,
+    moveSectionsById, undo,
   } = useDocumentStore()
 
   const [draggingId, setDraggingId]   = useState<string | null>(null)
@@ -102,9 +103,12 @@ export function OutlinePane() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [anchorId, setAnchorId]       = useState<string | null>(null)
 
-  const paneRef   = useRef<HTMLDivElement>(null)
-  const treeRef   = useRef<HTMLDivElement>(null)
-  const searchRef = useRef<HTMLInputElement>(null)
+  const paneRef        = useRef<HTMLDivElement>(null)
+  const treeRef        = useRef<HTMLDivElement>(null)
+  const searchRef      = useRef<HTMLInputElement>(null)
+  // Ref so handleDragEnd always sees the latest selectedIds (avoids stale closure)
+  const selectedIdsRef = useRef<Set<string>>(selectedIds)
+  selectedIdsRef.current = selectedIds
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
@@ -149,6 +153,15 @@ export function OutlinePane() {
     if (el) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
   }, [activeHeadingId])
 
+  // Clear multi-select when scroll/navigation moves focus outside the selected set.
+  // This prevents the "frozen blue subtree" visual tracking confusion.
+  useEffect(() => {
+    if (activeHeadingId && selectedIds.size > 0 && !selectedIds.has(activeHeadingId)) {
+      setSelectedIds(new Set())
+      setAnchorId(null)
+    }
+  }, [activeHeadingId])
+
   // ── Click handler ─────────────────────────────────────────────────────────
   const handleNodeClick = useCallback((id: string, e: MouseEvent) => {
     // Synchronously move keyboard focus to the pane div.
@@ -169,13 +182,13 @@ export function OutlinePane() {
       }
       // Do NOT update anchorId on shift-click — keep the original pivot
     } else {
-      // Regular click: select this heading + its entire subtree
-      setSelectedIds(getSubtreeIds(id))
+      // Regular click: navigate to heading, clear any multi-select
+      setSelectedIds(new Set())
       setAnchorId(id)
       setActiveHeading(id)
       setKeyFocusId(null)
     }
-  }, [anchorId, getSubtreeIds, setActiveHeading])
+  }, [anchorId, setActiveHeading])
 
   // Click on empty space in the tree clears selection
   const handleTreeClick = useCallback((e: MouseEvent<HTMLDivElement>) => {
@@ -239,6 +252,35 @@ export function OutlinePane() {
         }
         break
       }
+      case 'z':
+      case 'Z': {
+        if (e.metaKey || e.ctrlKey) {
+          e.preventDefault()
+          undo()
+        }
+        break
+      }
+      case 'c':
+      case 'C': {
+        if (e.metaKey || e.ctrlKey) {
+          e.preventDefault()
+          if (selectedIds.size > 0) {
+            // Copy full markdown for all selected sections (each carrying its subtree)
+            const idSet = new Set(selectedIds)
+            const roots = headings
+              .filter(h => idSet.has(h.id) && (!h.parentId || !idSet.has(h.parentId)))
+              .sort((a, b) => a.lineStart - b.lineStart)
+            const docLines = content.split('\n')
+            const blockLines: string[] = []
+            for (const root of roots) {
+              if (blockLines.length > 0) blockLines.push('')
+              blockLines.push(...docLines.slice(root.lineStart, root.sectionEnd + 1))
+            }
+            navigator.clipboard.writeText(blockLines.join('\n'))
+          }
+        }
+        break
+      }
       case 'Tab': {
         e.preventDefault()
         const focusId = keyFocusId ?? activeHeadingId
@@ -253,8 +295,6 @@ export function OutlinePane() {
             promoteMultipleById(Array.from(selectedIds))
           } else {
             promoteSectionById(focusId)
-            // Refresh single-item selection to match new heading IDs (unchanged)
-            setSelectedIds(getSubtreeIds(focusId))
           }
         } else {
           // Demote ———————————————————————————————————————————————————
@@ -262,7 +302,6 @@ export function OutlinePane() {
             demoteMultipleById(Array.from(selectedIds))
           } else {
             demoteSectionById(focusId)
-            setSelectedIds(getSubtreeIds(focusId))
           }
         }
         break
@@ -277,8 +316,8 @@ export function OutlinePane() {
     }
   }, [
     visibleHeadings, keyFocusId, activeHeadingId, foldedIds, search,
-    selectedIds, getSubtreeIds,
-    toggleFold, setActiveHeading,
+    selectedIds, getSubtreeIds, content, headings,
+    toggleFold, setActiveHeading, undo,
     promoteSectionById, demoteSectionById,
     promoteMultipleById, demoteMultipleById,
   ])
@@ -289,6 +328,8 @@ export function OutlinePane() {
   }, [])
 
   const handleDragEnd = useCallback((e: DragEndEvent) => {
+    // Capture selection BEFORE clearing it (selectedIdsRef always has latest value)
+    const draggedSelection = selectedIdsRef.current
     setDraggingId(null)
     setSelectedIds(new Set())
     setAnchorId(null)
@@ -300,8 +341,15 @@ export function OutlinePane() {
     if (oldIndex === -1 || newIndex === -1) return
 
     const placement = newIndex > oldIndex ? 'after' : 'before'
-    moveSection(e.active.id as string, e.over.id as string, placement)
-  }, [moveSection])
+    const toId = e.over.id as string
+
+    // If the dragged item is part of a multi-selection, move all selected headings
+    if (draggedSelection.size > 1 && draggedSelection.has(e.active.id as string)) {
+      moveSectionsById(Array.from(draggedSelection), toId, placement)
+    } else {
+      moveSection(e.active.id as string, toId, placement)
+    }
+  }, [moveSection, moveSectionsById])
 
   const draggingNode = draggingId ? headings.find(h => h.id === draggingId) : null
   // Count how many sub-headings the dragged node carries along

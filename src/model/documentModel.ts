@@ -345,6 +345,79 @@ export function changeMultipleSectionLevels(
   return lines.join('\n')
 }
 
+
+// Move a set of headings (each carrying its full subtree) to a new position as a group.
+// ids: the selected heading IDs to move
+// toId: the drop-target heading ID
+// placement: insert the block 'before' or 'after' the target heading's full section
+export function moveMultipleSections(
+  content: string,
+  headings: HeadingNode[],
+  ids: string[],
+  toId: string,
+  placement: 'before' | 'after'
+): string {
+  if (ids.length === 0) return content
+
+  const idSet = new Set(ids)
+
+  // Cannot drop onto a heading that is being moved
+  if (idSet.has(toId)) return content
+
+  const toHeading = getHeading(headings, toId)
+  if (!toHeading) return content
+
+  // Sort selected headings by line position
+  const selectedHeadings = headings
+    .filter(h => idSet.has(h.id))
+    .sort((a, b) => a.lineStart - b.lineStart)
+
+  if (selectedHeadings.length === 0) return content
+
+  // Root headings: those whose parent is NOT also in the selection.
+  // Each root carries its entire subtree (lineStart → sectionEnd).
+  const roots = selectedHeadings.filter(h => !h.parentId || !idSet.has(h.parentId))
+
+  const lines = content.split('\n')
+
+  // Lines covered by root blocks
+  const linesToRemove = new Set<number>()
+  for (const root of roots) {
+    for (let i = root.lineStart; i <= root.sectionEnd; i++) {
+      linesToRemove.add(i)
+    }
+  }
+
+  // Safety: cannot insert inside a removed block
+  if (linesToRemove.has(toHeading.lineStart)) return content
+
+  // Build the combined block in document order
+  const blockLines: string[] = []
+  for (const root of roots) {
+    blockLines.push(...lines.slice(root.lineStart, root.sectionEnd + 1))
+  }
+
+  // Remaining document with blocks removed
+  const remainingLines = lines.filter((_, i) => !linesToRemove.has(i))
+
+  // Insert position in original line numbers, then adjust for removed lines
+  const insertLine = placement === 'before'
+    ? toHeading.lineStart
+    : toHeading.sectionEnd + 1
+
+  let removedBefore = 0
+  for (const lineNum of linesToRemove) {
+    if (lineNum < insertLine) removedBefore++
+  }
+  const adjustedInsert = insertLine - removedBefore
+
+  return [
+    ...remainingLines.slice(0, adjustedInsert),
+    ...blockLines,
+    ...remainingLines.slice(adjustedInsert),
+  ].join('\n')
+}
+
 // Toggle fold for the heading at or containing the given line index.
 export function getHeadingForLine(headings: HeadingNode[], lineIndex: number): HeadingNode | null {
   // First check if the line IS a heading

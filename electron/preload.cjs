@@ -36,5 +36,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // OS-level file open
   onOpenFile: (cb) => ipcRenderer.on('open-file', (_event, filePath) => cb(filePath)),
 
+  // Autosave
+  autosaveWrite:  (content, filePath) => ipcRenderer.invoke('autosave:write',  { content, filePath }),
+  autosaveDelete: (filePath)          => ipcRenderer.invoke('autosave:delete', { filePath }),
+  autosaveCheck:  (filePath)          => ipcRenderer.invoke('autosave:check',  { filePath }),
+
   removeAllListeners: (channel) => ipcRenderer.removeAllListeners(channel),
 });

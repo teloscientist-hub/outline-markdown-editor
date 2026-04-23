@@ -1,6 +1,7 @@
 'use strict';
 const { app, BrowserWindow, ipcMain, dialog, Menu, shell } = require('electron');
-const path = require('path');
+const path   = require('path');
+const crypto = require('crypto');
 const fs = require('fs');
 
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
@@ -16,7 +17,19 @@ function getDocsPath() {
 const windowData = new Map();
 
 // ── Preferences ──────────────────────────────────────────────────────────────
-const PREFS_PATH = path.join(app.getPath('userData'), 'preferences.json');
+const PREFS_PATH    = path.join(app.getPath('userData'), 'preferences.json');
+const AUTOSAVE_DIR  = path.join(app.getPath('userData'), 'autosave');
+
+// Ensure autosave directory exists
+if (!fs.existsSync(AUTOSAVE_DIR)) fs.mkdirSync(AUTOSAVE_DIR, { recursive: true });
+
+// Map filePath (or 'untitled') → deterministic autosave path
+function getAutosavePath(filePath) {
+  const key  = filePath || 'untitled';
+  const hash = crypto.createHash('md5').update(key).digest('hex');
+  return path.join(AUTOSAVE_DIR, hash + '.autosave.md');
+}
+function getAutosaveMetaPath(filePath) { return getAutosavePath(filePath) + '.json'; }
 const MAX_RECENT = 10;
 
 function readPrefs() {
@@ -378,6 +391,62 @@ ipcMain.handle('dialog:save-as', async (event, { content }) => {
 });
 
 ipcMain.handle('fs:read', (_, filePath) => fs.readFileSync(filePath, 'utf-8'));
+
+// ── Autosave IPC ──────────────────────────────────────────────────────────────
+
+// Write content to the autosave slot for this filePath
+ipcMain.handle('autosave:write', (_, { content, filePath }) => {
+  try {
+    const p = getAutosavePath(filePath);
+    fs.writeFileSync(p, content, 'utf-8');
+    fs.writeFileSync(getAutosaveMetaPath(filePath), JSON.stringify({
+      filePath,
+      savedAt: new Date().toISOString(),
+    }), 'utf-8');
+  } catch (e) { console.error('autosave:write failed', e); }
+});
+
+// Delete the autosave slot (called after a successful real save)
+ipcMain.handle('autosave:delete', (_, { filePath }) => {
+  try {
+    const p = getAutosavePath(filePath);
+    if (fs.existsSync(p))                      fs.unlinkSync(p);
+    if (fs.existsSync(getAutosaveMetaPath(filePath))) fs.unlinkSync(getAutosaveMetaPath(filePath));
+  } catch (e) { console.error('autosave:delete failed', e); }
+});
+
+// Check whether a newer autosave exists for this filePath.
+// Returns { content, savedAt, originalPath } or null.
+ipcMain.handle('autosave:check', (_, { filePath }) => {
+  try {
+    const p = getAutosavePath(filePath);
+    if (!fs.existsSync(p)) return null;
+
+    const autosaveStat = fs.statSync(p);
+
+    // If there IS an original file, only offer restore if autosave is strictly newer
+    if (filePath) {
+      try {
+        const origStat = fs.statSync(filePath);
+        if (autosaveStat.mtime <= origStat.mtime) {
+          // Autosave is stale — clean it up silently
+          fs.unlinkSync(p);
+          if (fs.existsSync(getAutosaveMetaPath(filePath))) fs.unlinkSync(getAutosaveMetaPath(filePath));
+          return null;
+        }
+      } catch { /* original file missing — still offer restore */ }
+    }
+
+    const autosaveContent = fs.readFileSync(p, 'utf-8');
+    let savedAt = autosaveStat.mtime.toISOString();
+    try {
+      const meta = JSON.parse(fs.readFileSync(getAutosaveMetaPath(filePath), 'utf-8'));
+      savedAt = meta.savedAt || savedAt;
+    } catch {}
+
+    return { content: autosaveContent, savedAt, originalPath: filePath };
+  } catch (e) { return null; }
+});
 
 // ── App lifecycle ─────────────────────────────────────────────────────────────
 app.whenReady().then(() => {

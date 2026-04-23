@@ -6,3 +6,63 @@
   overflow: hidden;
   background: var(--color-bg);
 }
+
+/* ── Autosave restore dialog ─────────────────────────────────────────────── */
+.autosave-restore-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  backdrop-filter: blur(4px);
+}
+
+.autosave-restore-dialog {
+  background: var(--color-toolbar-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 28px 32px;
+  max-width: 420px;
+  width: 90%;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+}
+
+.autosave-restore-dialog h3 {
+  margin: 0 0 10px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.autosave-restore-dialog p {
+  margin: 0 0 22px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+.autosave-restore-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.autosave-btn {
+  padding: 7px 16px;
+  border-radius: 7px;
+  border: 1px solid var(--color-border);
+  background: var(--color-input-bg);
+  color: var(--color-text);
+  font-size: 13px;
+  cursor: pointer;
+}
+.autosave-btn:hover { background: var(--color-hover); }
+
+.autosave-btn--primary {
+  background: var(--color-active);
+  color: #fff;
+  border-color: var(--color-active);
+}
+.autosave-btn--primary:hover { opacity: 0.9; }

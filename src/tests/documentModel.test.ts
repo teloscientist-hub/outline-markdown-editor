@@ -10,7 +10,6 @@ import {
   moveSectionVertical,
   getHeadingAtLine,
   changeHeadingLevel,
-  HeadingNode,
 } from '../model/documentModel'
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -589,7 +588,6 @@ describe('moveSectionVertical', () => {
     const headings = parseHeadings(md2)
     // Child1 is H2, its siblings are only Child2 (not Parent or Sibling)
     const child1Id = headings[1].id
-    const child2Id = headings[2].id
     const result = moveSectionVertical(md2, headings, child1Id, 'down')
     expect(result).not.toBeNull()
     const lines = result!.split('\n')

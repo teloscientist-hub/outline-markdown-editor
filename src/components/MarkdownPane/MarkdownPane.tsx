@@ -44,13 +44,16 @@ const markDimmerPlugin = ViewPlugin.fromClass(
     build(view: EditorView): DecorationSet {
       const builder = new RangeSetBuilder<Decoration>()
       const dimMark   = Decoration.mark({ class: 'cm-md-mark' })
+      const headerMark = Decoration.mark({ class: 'cm-md-header-mark' })
       const codeBlock = Decoration.mark({ class: 'cm-inline-code' })
       for (const { from, to } of view.visibleRanges) {
         syntaxTree(view.state).iterate({
           from, to,
           enter(node) {
             const n = node.type.name
-            if (n === 'HeaderMark' || n === 'EmphasisMark' || n === 'CodeMark' ||
+            if (n === 'HeaderMark') {
+              builder.add(node.from, node.to, headerMark)
+            } else if (n === 'EmphasisMark' || n === 'CodeMark' ||
                 n === 'LinkMark'   || n === 'QuoteMark'    || n === 'ListMark') {
               builder.add(node.from, node.to, dimMark)
             } else if (n === 'InlineCode') {
@@ -120,7 +123,7 @@ const markEditTheme = EditorView.theme({
     color: 'var(--color-text-muted)',
     fontSize: '11px',
     padding: '0 8px',
-    opacity: '0.5',
+    opacity: '0.75',
     minWidth: '36px',
     textAlign: 'right',
   },
@@ -129,6 +132,7 @@ const markEditTheme = EditorView.theme({
   '.cm-selectionBackground, ::selection': { background: 'var(--color-selection) !important' },
   '.cm-cursor': { borderLeftColor: 'var(--color-active)', borderLeftWidth: '2px' },
   '.cm-md-mark': { color: 'var(--me-mark) !important', fontWeight: 'normal !important' },
+  '.cm-md-header-mark': { color: 'var(--me-header-mark) !important', fontWeight: 'normal !important' },
   '.cm-inline-code': { background: 'var(--me-code-bg)', borderRadius: '3px', padding: '0 2px' },
   '.cm-line-hidden': { display: 'none !important' },
 })

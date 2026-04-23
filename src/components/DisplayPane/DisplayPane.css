@@ -97,3 +97,30 @@
   width: 80px;
   height: 80px;
 }
+
+/* ── WYSIWYG editing styles ────────────────────────────────────────── */
+.display-editable {
+  outline: none;
+  cursor: text;
+  min-height: calc(100vh - 64px);
+}
+
+/* Subtle focus ring to indicate edit mode */
+.display-editable:focus {
+  outline: none;
+  box-shadow: inset 0 0 0 1.5px var(--color-active-border);
+  border-radius: 6px;
+}
+
+/* Keep heading click cursor even while editable */
+.display-editable .display-heading {
+  cursor: text;
+}
+.display-editable .display-heading:hover {
+  color: var(--color-active);
+}
+
+/* Make the edit-mode cursor feel natural on non-text areas */
+.display-editable:not(:focus) {
+  cursor: text;
+}

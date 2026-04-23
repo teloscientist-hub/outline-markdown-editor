@@ -29,11 +29,12 @@
   --color-statusbar-bg: #e8e8e8;
 
   /* MarkEdit-style syntax colors (light) */
-  --me-h1: #1C1C1E;
-  --me-h2: #1C1C1E;
-  --me-h3: #1C1C1E;
-  --me-h4: #3A3A3C;
-  --me-mark: #AEAEB2;
+  --me-h1: #1556AB;
+  --me-h2: #1556AB;
+  --me-h3: #1F68BC;
+  --me-h4: #2E7AC8;
+  --me-header-mark: #3A72C8;
+  --me-mark: #5C6F82;
   --me-strike: #8E8E93;
   --me-link: #007AFF;
   --me-code: #9B2335;
@@ -69,11 +70,12 @@
     --color-statusbar-bg: #1c1c1e;
 
   /* MarkEdit-style syntax colors (dark) */
-  --me-h1: #F2F2F7;
-  --me-h2: #F2F2F7;
-  --me-h3: #F2F2F7;
-  --me-h4: #C7C7CC;
-  --me-mark: #48484A;
+  --me-h1: #5B9EFF;
+  --me-h2: #5B9EFF;
+  --me-h3: #78AEFF;
+  --me-h4: #90BCFF;
+  --me-header-mark: #7AADF8;
+  --me-mark: #A8B8C6;
   --me-strike: #636366;
   --me-link: #0A84FF;
   --me-code: #FF9F0A;
@@ -133,11 +135,12 @@ html.theme-light {
   --color-statusbar-bg: #e8e8e8;
 
   /* MarkEdit-style syntax colors (light) */
-  --me-h1: #1C1C1E;
-  --me-h2: #1C1C1E;
-  --me-h3: #1C1C1E;
-  --me-h4: #3A3A3C;
-  --me-mark: #AEAEB2;
+  --me-h1: #1556AB;
+  --me-h2: #1556AB;
+  --me-h3: #1F68BC;
+  --me-h4: #2E7AC8;
+  --me-header-mark: #3A72C8;
+  --me-mark: #5C6F82;
   --me-strike: #8E8E93;
   --me-link: #007AFF;
   --me-code: #9B2335;
@@ -168,11 +171,12 @@ html.theme-dark {
   --color-statusbar-bg: #1c1c1e;
 
   /* MarkEdit-style syntax colors (dark) */
-  --me-h1: #F2F2F7;
-  --me-h2: #F2F2F7;
-  --me-h3: #F2F2F7;
-  --me-h4: #C7C7CC;
-  --me-mark: #48484A;
+  --me-h1: #5B9EFF;
+  --me-h2: #5B9EFF;
+  --me-h3: #78AEFF;
+  --me-h4: #90BCFF;
+  --me-header-mark: #7AADF8;
+  --me-mark: #A8B8C6;
   --me-strike: #636366;
   --me-link: #0A84FF;
   --me-code: #FF9F0A;

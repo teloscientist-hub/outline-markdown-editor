@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { subscribeWithSelector } from 'zustand/middleware'
 import type { HeadingNode } from '../model/documentModel'
-import { parseHeadings, moveSection, changeSectionLevel, moveSectionVertical, changeMultipleSectionLevels } from '../model/documentModel'
+import { parseHeadings, moveSection, changeSectionLevel, moveSectionVertical, changeMultipleSectionLevels, moveMultipleSections } from '../model/documentModel'
 
 const SAMPLE_DOCUMENT = `# Welcome to Outline Markdown Editor
 
@@ -127,6 +127,12 @@ export interface DocumentState {
   moveSectionDown: (id: string) => void
   promoteMultipleById: (ids: string[]) => void
   demoteMultipleById: (ids: string[]) => void
+  moveSectionsById: (fromIds: string[], toId: string, placement: 'before' | 'after') => void
+
+  // Undo history (for outline operations — typing undo is handled by CodeMirror)
+  history: string[]
+  pushHistory: () => void
+  undo: () => void
 
   setHeadingsOnlyMode: (v: boolean) => void
   // Set both headingsOnlyMode + depthMode in one call (for the unified View selector)
@@ -174,6 +180,7 @@ export const useDocumentStore = create<DocumentState>()(
     cursorLine: 0,
     cursorCol: 0,
     theme: 'system',
+    history: [] as string[],
 
     setContent: (content, _fromEditor = false) => {
       const words = content.trim() ? content.trim().split(/\s+/).length : 0
@@ -286,7 +293,26 @@ export const useDocumentStore = create<DocumentState>()(
       set({ wordCount: words, charCount: text.length })
     },
 
+    pushHistory: () => {
+      const { content, history } = get()
+      // Keep last 50 states
+      set({ history: [...history.slice(-49), content] })
+    },
+
+    undo: () => {
+      const { history } = get()
+      if (history.length === 0) return
+      const prev = history[history.length - 1]
+      set({
+        history: history.slice(0, -1),
+        content: prev,
+        headings: parseHeadings(prev),
+        isDirty: true,
+      })
+    },
+
     promoteSectionById: (id) => {
+      get().pushHistory()
       const { content, headings, foldedIds } = get()
       const newContent = changeSectionLevel(content, headings, id, -1)
       const newHeadings = parseHeadings(newContent)
@@ -297,6 +323,7 @@ export const useDocumentStore = create<DocumentState>()(
     },
 
     demoteSectionById: (id) => {
+      get().pushHistory()
       const { content, headings, depthMode, foldedIds } = get()
       const newContent = changeSectionLevel(content, headings, id, 1)
       const newHeadings = parseHeadings(newContent)
@@ -336,6 +363,7 @@ export const useDocumentStore = create<DocumentState>()(
     },
 
     moveSectionUp: (id) => {
+      get().pushHistory()
       const { content, headings } = get()
       const newContent = moveSectionVertical(content, headings, id, 'up')
       if (newContent) set({ content: newContent, headings: parseHeadings(newContent), isDirty: true })
@@ -344,6 +372,7 @@ export const useDocumentStore = create<DocumentState>()(
 
     promoteMultipleById: (ids) => {
       if (ids.length === 0) return
+      get().pushHistory()
       const { content, headings } = get()
       const newContent = changeMultipleSectionLevels(content, headings, ids, -1)
       set({ content: newContent, headings: parseHeadings(newContent), isDirty: true })
@@ -351,20 +380,35 @@ export const useDocumentStore = create<DocumentState>()(
 
     demoteMultipleById: (ids) => {
       if (ids.length === 0) return
+      get().pushHistory()
       const { content, headings } = get()
       const newContent = changeMultipleSectionLevels(content, headings, ids, 1)
       set({ content: newContent, headings: parseHeadings(newContent), isDirty: true })
     },
 
     moveSectionDown: (id) => {
+      get().pushHistory()
       const { content, headings } = get()
       const newContent = moveSectionVertical(content, headings, id, 'down')
       if (newContent) set({ content: newContent, headings: parseHeadings(newContent), isDirty: true })
     },
 
     moveSection: (fromId, toId, placement) => {
+      get().pushHistory()
       const { content, headings } = get()
       const newContent = moveSection(content, headings, fromId, toId, placement)
+      set({
+        content: newContent,
+        headings: parseHeadings(newContent),
+        isDirty: true,
+      })
+    },
+
+    moveSectionsById: (fromIds, toId, placement) => {
+      if (fromIds.length === 0) return
+      get().pushHistory()
+      const { content, headings } = get()
+      const newContent = moveMultipleSections(content, headings, fromIds, toId, placement)
       set({
         content: newContent,
         headings: parseHeadings(newContent),

@@ -37,9 +37,25 @@ declare global {
       onMenuDocInfo:       (cb: () => void) => void
       onMenuFormat:        (cb: (type: FormatType) => void) => void
       onOpenFile:          (cb: (filePath: string) => void) => void
+      autosaveWrite:  (content: string, filePath: string | null) => Promise<void>
+      autosaveDelete: (filePath: string | null) => Promise<void>
+      autosaveCheck:  (filePath: string | null) => Promise<{
+        content: string; savedAt: string; originalPath: string | null
+      } | null>
       removeAllListeners:  (channel: string) => void
     }
   }
+}
+
+// Format an ISO date string into a human-readable relative time
+function formatSavedAt(iso: string): string {
+  try {
+    const d    = new Date(iso)
+    const diff = Math.round((Date.now() - d.getTime()) / 1000)
+    if (diff <  60)  return `${diff}s ago`
+    if (diff < 3600) return `${Math.round(diff / 60)}m ago`
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  } catch { return 'recently' }
 }
 
 export function App() {
@@ -51,6 +67,9 @@ export function App() {
 
   const [showPreferences, setShowPreferences] = useState(false)
   const [showDocInfo,     setShowDocInfo]     = useState(false)
+  const [restoreOffer, setRestoreOffer] = useState<{
+    content: string; savedAt: string; originalContent: string; filePath: string | null
+  } | null>(null)
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // ── Window title ────────────────────────────────────────────────────────────
@@ -69,17 +88,37 @@ export function App() {
   // ── File operations ─────────────────────────────────────────────────────────
   const handleOpen = useCallback(async () => {
     const result = await window.electronAPI?.openFile()
-    if (result) loadFile(result.filePath, result.content)
+    if (!result) return
+    const autosave = await window.electronAPI?.autosaveCheck(result.filePath)
+    if (autosave) {
+      setRestoreOffer({
+        content:         autosave.content,
+        savedAt:         autosave.savedAt,
+        originalContent: result.content,
+        filePath:        result.filePath,
+      })
+      // Load the original first so the file is "open"; restore will swap content
+      loadFile(result.filePath, result.content)
+    } else {
+      loadFile(result.filePath, result.content)
+    }
   }, [loadFile])
 
   const handleSave = useCallback(async () => {
     const savedPath = await window.electronAPI?.saveFile(filePath, content)
-    if (savedPath) markSaved(savedPath)
+    if (savedPath) {
+      markSaved(savedPath)
+      // Real save succeeded — autosave is now redundant, remove it
+      window.electronAPI?.autosaveDelete(savedPath)
+    }
   }, [filePath, content, markSaved])
 
   const handleSaveAs = useCallback(async () => {
     const savedPath = await window.electronAPI?.saveFileAs(content)
-    if (savedPath) markSaved(savedPath)
+    if (savedPath) {
+      markSaved(savedPath)
+      window.electronAPI?.autosaveDelete(savedPath)
+    }
   }, [content, markSaved])
 
   const handleOpenPath = useCallback(async (p: string) => {
@@ -89,13 +128,32 @@ export function App() {
     } catch (e) { console.error('Failed to open file:', p, e) }
   }, [loadFile])
 
-  // ── Autosave ────────────────────────────────────────────────────────────────
+  // ── Autosave (writes to ~/Library/Application Support/…/autosave/ NOT the original) ──
   useEffect(() => {
-    if (!isDirty || !filePath) return
+    if (!isDirty) return                        // nothing changed — nothing to save
     if (autosaveTimer.current) clearTimeout(autosaveTimer.current)
-    autosaveTimer.current = setTimeout(() => { handleSave() }, 2000)
+    autosaveTimer.current = setTimeout(() => {
+      window.electronAPI?.autosaveWrite(content, filePath)
+    }, 2000)
     return () => { if (autosaveTimer.current) clearTimeout(autosaveTimer.current) }
-  }, [content, isDirty, filePath, handleSave])
+  }, [content, isDirty, filePath])
+
+  // ── Check for autosave on initial launch ──────────────────────────────────
+  useEffect(() => {
+    const check = async () => {
+      const { filePath: initialPath, content: initialContent } = useDocumentStore.getState()
+      const autosave = await window.electronAPI?.autosaveCheck(initialPath)
+      if (!autosave) return
+      setRestoreOffer({
+        content:         autosave.content,
+        savedAt:         autosave.savedAt,
+        originalContent: initialContent,
+        filePath:        initialPath,
+      })
+    }
+    check()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // ── Electron menu events ────────────────────────────────────────────────────
   useEffect(() => {
@@ -162,6 +220,40 @@ export function App() {
       <StatusBar />
       {showPreferences && <Preferences onClose={() => setShowPreferences(false)} />}
       {showDocInfo     && <DocumentInfo onClose={() => setShowDocInfo(false)} />}
+
+      {/* Autosave restore offer */}
+      {restoreOffer && (
+        <div className="autosave-restore-overlay">
+          <div className="autosave-restore-dialog">
+            <h3>Unsaved changes found</h3>
+            <p>
+              An autosave from <strong>{formatSavedAt(restoreOffer.savedAt)}</strong> exists
+              {restoreOffer.filePath ? ` for "${restoreOffer.filePath.split('/').pop()}"` : ' for an unsaved document'}.
+            </p>
+            <div className="autosave-restore-actions">
+              <button
+                className="autosave-btn autosave-btn--primary"
+                onClick={() => {
+                  useDocumentStore.getState().setContent(restoreOffer.content)
+                  setRestoreOffer(null)
+                }}
+              >
+                Restore Autosave
+              </button>
+              <button
+                className="autosave-btn"
+                onClick={() => {
+                  // Keep original — discard autosave
+                  window.electronAPI?.autosaveDelete(restoreOffer.filePath)
+                  setRestoreOffer(null)
+                }}
+              >
+                Keep Original
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
