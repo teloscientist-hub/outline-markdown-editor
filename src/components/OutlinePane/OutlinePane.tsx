@@ -93,9 +93,10 @@ export function OutlinePane() {
     moveSectionsById, undo,
   } = useDocumentStore()
 
-  const [draggingId, setDraggingId]   = useState<string | null>(null)
-  const [search, setSearch]           = useState('')
-  const [keyFocusId, setKeyFocusId]   = useState<string | null>(null)
+  const [draggingId, setDraggingId]       = useState<string | null>(null)
+  const [search, setSearch]               = useState('')
+  const [keyFocusId, setKeyFocusId]       = useState<string | null>(null)
+  const [showFormatting, setShowFormatting] = useState(false)
 
   // ── Multi-select state ────────────────────────────────────────────────────
   // selectedIds: the set of headings currently highlighted (multi-select).
@@ -361,7 +362,7 @@ export function OutlinePane() {
   return (
     <div className="outline-pane" ref={paneRef} onKeyDown={handleKeyDown} tabIndex={0}>
 
-      {/* Search */}
+      {/* Search + formatting toggle */}
       <div className="outline-search-bar">
         <input
           ref={searchRef}
@@ -375,6 +376,12 @@ export function OutlinePane() {
         {search && (
           <button className="outline-search-clear" onClick={() => setSearch('')} tabIndex={-1}>✕</button>
         )}
+        <button
+          className={`outline-fmt-toggle${showFormatting ? ' active' : ''}`}
+          onClick={() => setShowFormatting(v => !v)}
+          title={showFormatting ? 'Hide display formatting' : 'Show display formatting'}
+          tabIndex={-1}
+        >Aa</button>
       </div>
 
       {/* Selection info bar */}
@@ -409,7 +416,7 @@ export function OutlinePane() {
       ) : (
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           <SortableContext items={visibleHeadings.map(h => h.id)} strategy={verticalListSortingStrategy}>
-            <div className="outline-tree" ref={treeRef} onClick={handleTreeClick}>
+            <div className={`outline-tree${showFormatting ? ' formatted' : ''}`} ref={treeRef} onClick={handleTreeClick}>
               {visibleHeadings.map(node => (
                 <OutlineNodeItem
                   key={node.id}
