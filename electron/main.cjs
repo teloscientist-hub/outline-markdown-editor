@@ -65,7 +65,7 @@ function pushRecentFile(filePath) {
 function createWindow(filePath = null) {
   const win = new BrowserWindow({
     width: 1400, height: 900, minWidth: 800, minHeight: 600,
-    titleBarStyle: 'hiddenInset',
+    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,

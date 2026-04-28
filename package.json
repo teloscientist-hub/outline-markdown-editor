@@ -59,7 +59,7 @@
   "build": {
     "appId": "com.outlinemarkdown.editor",
     "productName": "Outline Markdown Editor",
-    "copyright": "Copyright © 2025",
+    "copyright": "Copyright \u00a9 2025",
     "directories": {
       "output": "release",
       "buildResources": "build"
@@ -109,10 +109,7 @@
     "afterSign": null,
     "fileAssociations": [
       {
-        "ext": [
-          "md",
-          "markdown"
-        ],
+        "ext": "md",
         "name": "Markdown Document",
         "description": "Markdown Document",
         "mimeType": "text/markdown",
@@ -125,6 +122,29 @@
         "from": "docs/",
         "to": "docs/"
       }
-    ]
+    ],
+    "linux": {
+      "category": "Office",
+      "icon": "build/icon.png",
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    }
+  },
+  "description": "A tri-pane outline markdown editor",
+  "author": {
+    "name": "Mark",
+    "email": "teloscientist@gmail.com"
   }
 }

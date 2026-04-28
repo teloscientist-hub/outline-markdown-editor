@@ -41,8 +41,8 @@
   --me-code-bg: rgba(0, 0, 0, 0.055);
   --me-quote: #6C6C70;
 
-  --font-prose: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-  --font-mono: 'SF Mono', 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+  --font-prose: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Ubuntu', 'Noto Sans', system-ui, sans-serif;
+  --font-mono: 'SF Mono', 'Cascadia Code', 'JetBrains Mono', 'Fira Code', 'Consolas', 'DejaVu Sans Mono', monospace;
 }
 
 @media (prefers-color-scheme: dark) {
