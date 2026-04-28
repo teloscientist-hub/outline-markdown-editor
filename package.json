@@ -140,6 +140,26 @@
           ]
         }
       ]
+    },
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
     }
   },
   "description": "A tri-pane outline markdown editor",
