@@ -1,6 +1,6 @@
 # Outline Markdown Editor
 
-A tri-pane desktop Markdown editor with real outline control — fold, filter, reorder, and navigate
+A tri-pane desktop Markdown editor with real outline control — fold, filter, drag-and-drop reorder, and navigate
 your document structure without leaving the app.
 
 Built with Electron, React 19, TypeScript, and CodeMirror 6.
