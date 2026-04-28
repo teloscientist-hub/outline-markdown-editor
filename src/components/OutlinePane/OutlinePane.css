@@ -227,43 +227,44 @@
 }
 
 /* ── Display formatting mode ─────────────────────────────────────────────────
-   Applied when the Aa toggle is on. Mirrors display-pane heading aesthetics
-   using the same CSS variables, scaled to fit the compact outline column.      */
+   Browser-default heading proportions (2em / 1.5em / 1.17em / 1em / 0.83em / 0.67em)
+   scaled to the outline's 13px base. All levels bold, matching HTML defaults.  */
 
-.outline-tree.formatted .outline-node { min-height: 32px; align-items: center; }
+.outline-tree.formatted .outline-node { align-items: baseline; }
 
 .outline-tree.formatted .outline-node.level-1 .outline-node-label {
-  font-size: 14px;
+  font-size: 26px;
   font-weight: 700;
   color: var(--me-h1);
+  line-height: 1.2;
 }
 .outline-tree.formatted .outline-node.level-2 .outline-node-label {
-  font-size: 13px;
+  font-size: 21px;
   font-weight: 700;
   color: var(--me-h2);
+  line-height: 1.25;
 }
 .outline-tree.formatted .outline-node.level-3 .outline-node-label {
-  font-size: 12.5px;
-  font-weight: 600;
+  font-size: 18px;
+  font-weight: 700;
   color: var(--me-h3);
 }
 .outline-tree.formatted .outline-node.level-4 .outline-node-label {
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 700;
   color: var(--me-h4);
 }
 .outline-tree.formatted .outline-node.level-5 .outline-node-label {
-  font-size: 11.5px;
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: 700;
   color: var(--me-h4);
-  opacity: 0.85;
+  opacity: 0.8;
 }
 .outline-tree.formatted .outline-node.level-6 .outline-node-label {
   font-size: 11px;
-  font-weight: 500;
-  font-style: italic;
+  font-weight: 700;
   color: var(--me-h4);
-  opacity: 0.7;
+  opacity: 0.65;
 }
 
 /* Active/selected states still use the accent color in formatted mode */
