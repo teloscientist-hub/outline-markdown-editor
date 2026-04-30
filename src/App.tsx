@@ -20,7 +20,7 @@ declare global {
       }
       openFile:    () => Promise<{ filePath: string; content: string } | null>
       saveFile:    (filePath: string | null, content: string) => Promise<string | null>
-      saveFileAs:  (content: string) => Promise<string | null>
+      saveFileAs:  (content: string, defaultPath?: string) => Promise<string | null>
       readFile:    (filePath: string) => Promise<string>
       statFile:    (filePath: string) => Promise<{ created: string; modified: string; size: number } | null>
       setFilePath: (filePath: string | null) => Promise<void>
@@ -222,38 +222,61 @@ export function App() {
       {showDocInfo     && <DocumentInfo onClose={() => setShowDocInfo(false)} />}
 
       {/* Autosave restore offer */}
-      {restoreOffer && (
-        <div className="autosave-restore-overlay">
-          <div className="autosave-restore-dialog">
-            <h3>Unsaved changes found</h3>
-            <p>
-              An autosave from <strong>{formatSavedAt(restoreOffer.savedAt)}</strong> exists
-              {restoreOffer.filePath ? ` for "${restoreOffer.filePath.split('/').pop()}"` : ' for an unsaved document'}.
-            </p>
-            <div className="autosave-restore-actions">
-              <button
-                className="autosave-btn autosave-btn--primary"
-                onClick={() => {
-                  useDocumentStore.getState().setContent(restoreOffer.content)
-                  setRestoreOffer(null)
-                }}
-              >
-                Restore Autosave
-              </button>
-              <button
-                className="autosave-btn"
-                onClick={() => {
-                  // Keep original — discard autosave
-                  window.electronAPI?.autosaveDelete(restoreOffer.filePath)
-                  setRestoreOffer(null)
-                }}
-              >
-                Keep Original
-              </button>
+      {restoreOffer && (() => {
+        const origName = restoreOffer.filePath
+          ? restoreOffer.filePath.split('/').pop()!.replace(/\.md$/i, '')
+          : 'untitled'
+        const origDir  = restoreOffer.filePath
+          ? restoreOffer.filePath.substring(0, restoreOffer.filePath.lastIndexOf('/'))
+          : null
+        const saveAsPath = origDir
+          ? `${origDir}/${origName}-autosaved.md`
+          : `${origName}-autosaved.md`
+        return (
+          <div className="autosave-restore-overlay">
+            <div className="autosave-restore-dialog">
+              <h3>Unsaved changes found</h3>
+              <p className="autosave-restore-filename">
+                {restoreOffer.filePath ? restoreOffer.filePath.split('/').pop() : 'Untitled (unsaved)'}
+              </p>
+              <p>
+                An autosave from <strong>{formatSavedAt(restoreOffer.savedAt)}</strong> is available.
+              </p>
+              <div className="autosave-restore-actions">
+                <button
+                  className="autosave-btn autosave-btn--primary"
+                  onClick={() => {
+                    useDocumentStore.getState().setContent(restoreOffer.content)
+                    setRestoreOffer(null)
+                  }}
+                >
+                  Restore Autosave
+                </button>
+                <button
+                  className="autosave-btn"
+                  onClick={async () => {
+                    // Save autosave content as a new file so user can compare
+                    await window.electronAPI?.saveFileAs(restoreOffer.content, saveAsPath)
+                    window.electronAPI?.autosaveDelete(restoreOffer.filePath)
+                    setRestoreOffer(null)
+                  }}
+                >
+                  Save as New…
+                </button>
+                <button
+                  className="autosave-btn"
+                  onClick={() => {
+                    window.electronAPI?.autosaveDelete(restoreOffer.filePath)
+                    setRestoreOffer(null)
+                  }}
+                >
+                  Discard
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
     </div>
   )
 }

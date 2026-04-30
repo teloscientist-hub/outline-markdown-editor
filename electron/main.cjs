@@ -379,11 +379,11 @@ ipcMain.handle('dialog:save', async (event, { filePath, content }) => {
   return savePath;
 });
 
-ipcMain.handle('dialog:save-as', async (event, { content }) => {
+ipcMain.handle('dialog:save-as', async (event, { content, defaultPath }) => {
   const win = BrowserWindow.fromWebContents(event.sender);
   const result = await dialog.showSaveDialog(win, {
     filters: [{ name: 'Markdown', extensions: ['md'] }],
-    defaultPath: 'untitled.md',
+    defaultPath: defaultPath || 'untitled.md',
   });
   if (result.canceled) return null;
   fs.writeFileSync(result.filePath, content, 'utf-8');

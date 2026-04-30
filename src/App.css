@@ -30,10 +30,20 @@
 }
 
 .autosave-restore-dialog h3 {
-  margin: 0 0 10px;
+  margin: 0 0 6px;
   font-size: 15px;
   font-weight: 600;
   color: var(--color-text);
+}
+
+.autosave-restore-filename {
+  margin: 0 0 10px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: var(--color-text) !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .autosave-restore-dialog p {
@@ -45,8 +55,9 @@
 
 .autosave-restore-actions {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   justify-content: flex-end;
+  flex-wrap: wrap;
 }
 
 .autosave-btn {
