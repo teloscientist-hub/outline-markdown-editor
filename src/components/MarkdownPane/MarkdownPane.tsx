@@ -68,6 +68,50 @@ const markDimmerPlugin = ViewPlugin.fromClass(
   { decorations: v => v.decorations }
 )
 
+
+// ── Frontmatter ViewPlugin ────────────────────────────────────────────────────
+const frontmatterPlugin = ViewPlugin.fromClass(
+  class {
+    decorations: DecorationSet
+    constructor(view: EditorView) { this.decorations = this.build(view) }
+    update(u: ViewUpdate) {
+      if (u.docChanged || u.viewportChanged) this.decorations = this.build(u.view)
+    }
+    build(view: EditorView): DecorationSet {
+      const doc = view.state.doc
+      if (doc.lines < 2) return Decoration.none
+      if (doc.line(1).text.trim() !== '---') return Decoration.none
+      let closingLine = -1
+      for (let i = 2; i <= Math.min(doc.lines, 50); i++) {
+        if (doc.line(i).text.trim() === '---') { closingLine = i; break }
+      }
+      if (closingLine === -1) return Decoration.none
+      const builder = new RangeSetBuilder<Decoration>()
+      const delimDeco = Decoration.mark({ class: 'cm-fm-delim' })
+      const bgDeco    = Decoration.line({ class: 'cm-fm-line' })
+      const keyDeco   = Decoration.mark({ class: 'cm-fm-key' })
+      const valDeco   = Decoration.mark({ class: 'cm-fm-val' })
+      for (let i = 1; i <= closingLine; i++) {
+        const line = doc.line(i)
+        builder.add(line.from, line.from, bgDeco)
+        if (i === 1 || i === closingLine) {
+          builder.add(line.from, line.to, delimDeco)
+        } else {
+          const text = line.text
+          const colonIdx = text.indexOf(':')
+          if (colonIdx > 0) {
+            builder.add(line.from, line.from + colonIdx, keyDeco)
+            if (colonIdx + 1 < text.length)
+              builder.add(line.from + colonIdx + 1, line.to, valDeco)
+          }
+        }
+      }
+      return builder.finish()
+    }
+  },
+  { decorations: v => v.decorations }
+)
+
 // ── Hidden-lines plugin ───────────────────────────────────────────────────────
 function makeHiddenLinesPlugin(getHidden: () => Set<number>) {
   const hiddenLine = Decoration.line({ class: 'cm-line-hidden' })
@@ -135,6 +179,10 @@ const markEditTheme = EditorView.theme({
   '.cm-md-header-mark': { color: 'var(--me-header-mark) !important', fontWeight: 'normal !important' },
   '.cm-inline-code': { background: 'var(--me-code-bg)', borderRadius: '3px', padding: '0 2px' },
   '.cm-line-hidden': { display: 'none !important' },
+  '.cm-fm-line':  { background: 'var(--me-fm-bg) !important' },
+  '.cm-fm-delim': { color: 'var(--me-mark) !important', fontWeight: 'normal !important' },
+  '.cm-fm-key':   { color: 'var(--me-yaml-key) !important', fontWeight: 'normal !important' },
+  '.cm-fm-val':   { color: 'var(--me-text) !important', fontWeight: 'normal !important' },
 })
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -159,7 +207,7 @@ export function MarkdownPane() {
   const [bubble, setBubble] = useState<{ x: number; y: number; level: number } | null>(null)
 
   const {
-    content,
+    content, loadKey,
     headings, foldedIds,
     activeHeadingId,
     headingsOnlyMode, depthMode,
@@ -275,6 +323,7 @@ export function MarkdownPane() {
         lineNumbers(),
         makeHiddenLinesPlugin(() => hiddenLinesRef.current),
         markDimmerPlugin,
+        frontmatterPlugin,
         markdown({ base: markdownLanguage }),
         syntaxHighlighting(markEditStyle),
         markEditTheme,
@@ -341,6 +390,17 @@ export function MarkdownPane() {
     view.dispatch({ effects: [] })
     view.requestMeasure()
   }, [hiddenLines])
+
+  // ── Scroll to top when a new file is loaded ────────────────────────────────
+  useEffect(() => {
+    const view = viewRef.current
+    if (!view) return
+    suppressScrollRef.current = true
+    clearTimeout(suppressTimerRef.current)
+    view.scrollDOM.scrollTop = 0
+    suppressTimerRef.current = setTimeout(() => { suppressScrollRef.current = false }, 300)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadKey])
 
   // ── Sync content from outside ─────────────────────────────────────────────
   useEffect(() => {

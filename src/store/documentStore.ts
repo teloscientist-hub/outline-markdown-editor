@@ -100,6 +100,9 @@ export interface DocumentState {
   wordCount: number
   charCount: number
 
+  // Increments each time a file is loaded — used to reset scroll in panes
+  loadKey: number
+
   // Actions
   setContent: (content: string, fromEditor?: boolean) => void
   loadFile: (filePath: string, content: string) => void
@@ -181,6 +184,7 @@ export const useDocumentStore = create<DocumentState>()(
     cursorCol: 0,
     theme: 'system',
     history: [] as string[],
+    loadKey: 0,
 
     setContent: (content, _fromEditor = false) => {
       const words = content.trim() ? content.trim().split(/\s+/).length : 0
@@ -194,7 +198,7 @@ export const useDocumentStore = create<DocumentState>()(
     },
 
     loadFile: (filePath, content) => {
-      set({
+      set(state => ({
         content,
         filePath,
         isDirty: false,
@@ -204,7 +208,8 @@ export const useDocumentStore = create<DocumentState>()(
         headingsOnlyMode: false,
         cursorLine: 0,
         cursorCol: 0,
-      })
+        loadKey: state.loadKey + 1,
+      }))
     },
 
     newFile: () => {

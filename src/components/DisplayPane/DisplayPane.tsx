@@ -36,7 +36,7 @@ td.addRule('passthrough-attrs', {
 export function DisplayPane() {
   const {
     content, headings, foldedIds, depthMode, headingsOnlyMode,
-    activeHeadingId, setActiveHeading,
+    activeHeadingId, setActiveHeading, loadKey,
   } = useDocumentStore()
 
   const scrollRef    = useRef<HTMLDivElement>(null)   // outer scroll container
@@ -51,11 +51,16 @@ export function DisplayPane() {
 
   const [bubble, setBubble] = useState<BubbleState | null>(null)
 
+  // ── Strip YAML frontmatter for display (--- ... ---) ────────────────────────
+  const contentWithoutFrontmatter = useMemo(() => {
+    return content.replace(/^---\n[\s\S]*?\n---\n?/, '')
+  }, [content])
+
   // ── Visible content (fold / depth filtering) ──────────────────────────────
   const visibleContent = useMemo(() => {
-    if (foldedIds.size === 0 && depthMode === 0 && !headingsOnlyMode) return content
-    const hidden = computeHiddenLines(content, headings, foldedIds, depthMode, headingsOnlyMode)
-    return content.split('\n')
+    if (foldedIds.size === 0 && depthMode === 0 && !headingsOnlyMode) return contentWithoutFrontmatter
+    const hidden = computeHiddenLines(contentWithoutFrontmatter, headings, foldedIds, depthMode, headingsOnlyMode)
+    return contentWithoutFrontmatter.split('\n')
       .map((line, i) => (hidden.has(i) ? null : line))
       .filter(l => l !== null)
       .join('\n')
@@ -210,6 +215,16 @@ export function DisplayPane() {
       container.scrollTop = Math.max(0, targetTop)
     })
   }, [getAbsTop])
+
+  // ── Scroll to top when a new file is loaded ─────────────────────────────────
+  useEffect(() => {
+    if (!scrollRef.current) return
+    suppressScrollRef.current = true
+    clearTimeout(suppressTimerRef.current)
+    scrollRef.current.scrollTop = 0
+    suppressTimerRef.current = setTimeout(() => { suppressScrollRef.current = false }, 300)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadKey])
 
   // ── Scroll to active heading (outline click) ──────────────────────────────
   useEffect(() => {

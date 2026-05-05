@@ -35,6 +35,8 @@
   --me-h4: #2E7AC8;
   --me-header-mark: #3A72C8;
   --me-mark: #5C6F82;
+  --me-yaml-key: #C07828;
+  --me-fm-bg: rgba(192, 120, 40, 0.05);
   --me-strike: #8E8E93;
   --me-link: #007AFF;
   --me-code: #9B2335;
@@ -76,6 +78,8 @@
   --me-h4: #90BCFF;
   --me-header-mark: #7AADF8;
   --me-mark: #A8B8C6;
+  --me-yaml-key: #E5A050;
+  --me-fm-bg: rgba(229, 160, 80, 0.07);
   --me-strike: #636366;
   --me-link: #0A84FF;
   --me-code: #FF9F0A;
