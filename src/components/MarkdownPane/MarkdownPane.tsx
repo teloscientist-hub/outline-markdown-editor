@@ -294,7 +294,9 @@ export function MarkdownPane() {
           }
         }
 
-        let startTop = 0, endTop = dom.scrollHeight
+        let startTop = 0
+        // Use maxScrollTop (not scrollHeight) so ratio reaches 1.0 at the true bottom
+        let endTop = dom.scrollHeight - dom.clientHeight
         if (prevH) startTop = cmLineTop(view, prevH.lineStart + 1)
         if (nextH) endTop   = cmLineTop(view, nextH.lineStart + 1)
 

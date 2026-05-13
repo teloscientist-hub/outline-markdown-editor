@@ -178,7 +178,8 @@ export function DisplayPane() {
       ratio = maxScroll > 0 ? Math.max(0, Math.min(1, scrollTop / maxScroll)) : 0
     } else {
       const startTop = prevEl ? getAbsTop(prevEl) : 0
-      const endTop   = nextEl ? getAbsTop(nextEl) : container.scrollHeight
+      // Use maxScrollTop so ratio reaches 1.0 at the true bottom of this pane
+      const endTop   = nextEl ? getAbsTop(nextEl) : container.scrollHeight - container.clientHeight
       const sectionH = endTop - startTop
       ratio = sectionH > 0 ? Math.max(0, Math.min(1, (scrollTop - startTop) / sectionH)) : 0
     }
@@ -197,7 +198,9 @@ export function DisplayPane() {
       if (suppressScrollRef.current || !scrollRef.current || !editableRef.current) return
       const container = scrollRef.current
       const editable  = editableRef.current
-      let startTop = 0, endTop = container.scrollHeight
+      let startTop = 0
+      // Use maxScrollTop so ratio=1.0 maps to the true bottom of this pane
+      let endTop = container.scrollHeight - container.clientHeight
       if (pos.prevHeadingId) {
         const el = editable.querySelector<HTMLElement>(`[data-heading-id="${pos.prevHeadingId}"]`)
         if (el) startTop = getAbsTop(el)
@@ -206,9 +209,7 @@ export function DisplayPane() {
         const el = editable.querySelector<HTMLElement>(`[data-heading-id="${pos.nextHeadingId}"]`)
         if (el) endTop = getAbsTop(el)
       }
-      const targetTop = (!pos.prevHeadingId && !pos.nextHeadingId)
-        ? pos.ratio * Math.max(0, container.scrollHeight - container.clientHeight)
-        : startTop + pos.ratio * Math.max(0, endTop - startTop)
+      const targetTop = startTop + pos.ratio * Math.max(0, endTop - startTop)
       suppressScrollRef.current = true
       clearTimeout(suppressTimerRef.current)
       suppressTimerRef.current = setTimeout(() => { suppressScrollRef.current = false }, 150)

@@ -437,6 +437,14 @@ ipcMain.handle('autosave:check', (_, { filePath }) => {
       } catch { /* original file missing — still offer restore */ }
     }
 
+    // Discard autosaves older than 24 hours — stale leftovers from previous sessions
+    const ageMs = Date.now() - autosaveStat.mtime.getTime();
+    if (ageMs > 24 * 60 * 60 * 1000) {
+      try { fs.unlinkSync(p); } catch {}
+      try { fs.unlinkSync(getAutosaveMetaPath(filePath)); } catch {}
+      return null;
+    }
+
     const autosaveContent = fs.readFileSync(p, 'utf-8');
     let savedAt = autosaveStat.mtime.toISOString();
     try {

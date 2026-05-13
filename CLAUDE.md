@@ -153,10 +153,10 @@ The project lives in a folder called **`mark's Mac Studio`** which uses a **curl
 
 ```python
 # WRONG — straight apostrophe breaks the string literal
-BASE = '/Users/mark/Documents/Documents - mark's Mac Studio/...'
+BASE = '/Users/mark/Documents/Documents - MML Mac Studio/...'
 
 # CORRECT — use Unicode escape in a heredoc
-BASE = '/Users/mark/Documents/Documents - mark's Mac Studio/...'
+BASE = '/Users/mark/Documents/Documents - MML Mac Studio/...'
 ```
 
 In bash, inject the character with `$'\xe2\x80\x99'`:
