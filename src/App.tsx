@@ -142,6 +142,7 @@ export function App() {
   useEffect(() => {
     const check = async () => {
       const { filePath: initialPath, content: initialContent } = useDocumentStore.getState()
+      if (!initialPath) return   // no real file open — nothing to restore
       const autosave = await window.electronAPI?.autosaveCheck(initialPath)
       if (!autosave) return
       setRestoreOffer({
