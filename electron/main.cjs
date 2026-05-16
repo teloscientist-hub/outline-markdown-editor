@@ -392,6 +392,19 @@ ipcMain.handle('dialog:save-as', async (event, { content, defaultPath }) => {
 
 ipcMain.handle('fs:read', (_, filePath) => fs.readFileSync(filePath, 'utf-8'));
 
+// ── Link handling ─────────────────────────────────────────────────────────────
+ipcMain.handle('link:open', (_, url) => shell.openExternal(url));
+
+ipcMain.handle('link:context-menu', (event, url) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  const menu = Menu.buildFromTemplate([
+    { label: 'Open Link in Browser', click: () => shell.openExternal(url) },
+    { label: 'Copy Link', click: () => require('electron').clipboard.writeText(url) },
+  ]);
+  menu.popup({ window: win });
+});
+
+
 // ── Autosave IPC ──────────────────────────────────────────────────────────────
 
 // Write content to the autosave slot for this filePath

@@ -43,6 +43,8 @@ declare global {
         content: string; savedAt: string; originalPath: string | null
       } | null>
       removeAllListeners:  (channel: string) => void
+      openLink:     (url: string) => Promise<void>
+      showLinkMenu: (url: string) => Promise<void>
     }
   }
 }

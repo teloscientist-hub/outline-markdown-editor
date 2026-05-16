@@ -41,5 +41,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   autosaveDelete: (filePath)          => ipcRenderer.invoke('autosave:delete', { filePath }),
   autosaveCheck:  (filePath)          => ipcRenderer.invoke('autosave:check',  { filePath }),
 
+  // Link handling
+  openLink:     (url) => ipcRenderer.invoke('link:open', url),
+  showLinkMenu: (url) => ipcRenderer.invoke('link:context-menu', url),
+
+
   removeAllListeners: (channel) => ipcRenderer.removeAllListeners(channel),
 });

@@ -138,14 +138,32 @@ export function DisplayPane() {
     applyFormat(type); setBubble(null)
   }, [])
 
-  // ── Heading click (event delegation) ─────────────────────────────────────
+  // ── Heading + link click (event delegation) ──────────────────────────────
   const handleClick = useCallback((e: React.MouseEvent) => {
+    // Link: open in default browser
+    const linkEl = (e.target as HTMLElement).closest('a[href]') as HTMLAnchorElement | null
+    if (linkEl) {
+      e.preventDefault()
+      const url = linkEl.href
+      if (url) window.electronAPI?.openLink(url)
+      return
+    }
+    // Heading: set active
     const headingEl = (e.target as HTMLElement).closest('[data-heading-id]')
     if (headingEl) {
       const id = headingEl.getAttribute('data-heading-id')
       if (id) setActiveHeading(id)
     }
   }, [setActiveHeading])
+
+  // ── Link right-click context menu ─────────────────────────────────────────
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    const linkEl = (e.target as HTMLElement).closest('a[href]') as HTMLAnchorElement | null
+    if (linkEl) {
+      e.preventDefault()
+      window.electronAPI?.showLinkMenu(linkEl.href)
+    }
+  }, [])
 
   // ── Scroll helpers ────────────────────────────────────────────────────────
   const getAbsTop = useCallback((el: HTMLElement): number => {
@@ -277,6 +295,7 @@ export function DisplayPane() {
           onBlur={handleBlur}
           onInput={handleInput}
           onClick={handleClick}
+          onContextMenu={handleContextMenu}
           spellCheck={true}
         />
       </div>
