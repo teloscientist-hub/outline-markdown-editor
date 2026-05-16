@@ -133,6 +133,7 @@ export function App() {
   // ── Autosave (writes to ~/Library/Application Support/…/autosave/ NOT the original) ──
   useEffect(() => {
     if (!isDirty) return                        // nothing changed — nothing to save
+    if (!filePath)  return                      // untitled: nowhere to restore to — skip
     if (autosaveTimer.current) clearTimeout(autosaveTimer.current)
     autosaveTimer.current = setTimeout(() => {
       window.electronAPI?.autosaveWrite(content, filePath)
@@ -141,12 +142,13 @@ export function App() {
   }, [content, isDirty, filePath])
 
   // ── Check for autosave on initial launch ──────────────────────────────────
-  // Only on real program launch — NOT for new windows (type=blank)
+  // Only for real saved files. Untitled docs and new windows never trigger it.
   useEffect(() => {
     const info = window.electronAPI?.initialInfo
     if (info?.type === 'blank') return  // new window: never offer restore
     const check = async () => {
       const { filePath: initialPath, content: initialContent } = useDocumentStore.getState()
+      if (!initialPath) return  // untitled doc: never offer restore
       const autosave = await window.electronAPI?.autosaveCheck(initialPath)
       if (!autosave) return
       setRestoreOffer({
