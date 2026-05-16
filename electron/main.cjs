@@ -42,7 +42,7 @@ function readPrefs() {
     }
     return p;
   } catch {
-    return { startup: 'readme', recentFiles: [] };
+    return { startup: 'readme', recentFiles: [], launchCount: 0, startupAsked: false };
   }
 }
 
@@ -471,6 +471,12 @@ ipcMain.handle('autosave:check', (_, { filePath }) => {
 
 // ── App lifecycle ─────────────────────────────────────────────────────────────
 app.whenReady().then(() => {
+  // Bump launch counter so the renderer can prompt for startup preference
+  try {
+    const p = readPrefs();
+    p.launchCount = (p.launchCount || 0) + 1;
+    writePrefs(p);
+  } catch {}
   buildMenu();
   const fileToOpen = pendingOpenFile;
   pendingOpenFile = null;

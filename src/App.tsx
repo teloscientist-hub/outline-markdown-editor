@@ -72,6 +72,7 @@ export function App() {
   const [restoreOffer, setRestoreOffer] = useState<{
     content: string; savedAt: string; originalContent: string; filePath: string | null
   } | null>(null)
+  const [showStartupPrompt, setShowStartupPrompt] = useState(false)
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // ── Window title ────────────────────────────────────────────────────────────
@@ -162,7 +163,38 @@ export function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // ── Electron menu events ────────────────────────────────────────────────────
+  // ── First-time startup prompt: after 3 launches, ask if user wants README or blank ──
+  useEffect(() => {
+    const info = window.electronAPI?.initialInfo
+    if (info?.type === 'blank') return  // new window — never prompt
+    const prefs = (info?.prefs ?? {}) as Record<string, unknown>
+    const launchCount  = (prefs.launchCount  as number)  || 0
+    const startupAsked = (prefs.startupAsked as boolean) || false
+    if (!startupAsked && launchCount > 3) setShowStartupPrompt(true)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // ── Apply the user's startup-prompt answer ─────────────────────────────────
+  const handleStartupChoice = useCallback(async (choice: 'readme' | 'blank') => {
+    setShowStartupPrompt(false)
+    // Persist the preference
+    try {
+      const cur = await window.electronAPI?.getPreferences()
+      await window.electronAPI?.setPreferences({
+        ...(cur || {}),
+        startup: choice,
+        startupAsked: true,
+      })
+    } catch {}
+    // If they chose blank, clear the current README they're looking at
+    if (choice === 'blank') {
+      useDocumentStore.getState().loadFile(null as unknown as string, '')
+      // Reset isDirty so we don't accidentally trigger autosaves on the empty doc
+      useDocumentStore.setState({ filePath: null, content: '', isDirty: false })
+    }
+  }, [])
+
+    // ── Electron menu events ────────────────────────────────────────────────────
   useEffect(() => {
     if (!window.electronAPI) return
     window.electronAPI.onMenuOpen(handleOpen)
@@ -284,6 +316,30 @@ export function App() {
           </div>
         )
       })()}
+
+      {/* Startup preference prompt — appears after 3 launches */}
+      {showStartupPrompt && (
+        <div className="autosave-restore-overlay">
+          <div className="autosave-restore-dialog">
+            <h3>How should the app open?</h3>
+            <p>You can either start with the README each time, or with a fresh blank document.</p>
+            <div className="autosave-restore-actions">
+              <button
+                className="autosave-btn autosave-btn--primary"
+                onClick={() => handleStartupChoice('blank')}
+              >
+                Start with a blank document
+              </button>
+              <button
+                className="autosave-btn"
+                onClick={() => handleStartupChoice('readme')}
+              >
+                Keep showing the README
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
