@@ -374,6 +374,11 @@ export function MarkdownPane() {
     })
     viewRef.current = view
 
+    // Auto-focus when starting on a blank document so user can type immediately
+    if (view.state.doc.length === 0) {
+      requestAnimationFrame(() => view.focus())
+    }
+
     // Register this view's formatter with the format bus
     setFormatter((type: FormatType) => applyFormatting(view, type))
 
@@ -401,6 +406,10 @@ export function MarkdownPane() {
     clearTimeout(suppressTimerRef.current)
     view.scrollDOM.scrollTop = 0
     suppressTimerRef.current = setTimeout(() => { suppressScrollRef.current = false }, 300)
+    // Focus the editor when the loaded doc is blank (e.g. New Window, File > New)
+    if (view.state.doc.length === 0) {
+      requestAnimationFrame(() => view.focus())
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadKey])
 

@@ -141,10 +141,12 @@ export function App() {
   }, [content, isDirty, filePath])
 
   // ── Check for autosave on initial launch ──────────────────────────────────
+  // Only on real program launch — NOT for new windows (type=blank)
   useEffect(() => {
+    const info = window.electronAPI?.initialInfo
+    if (info?.type === 'blank') return  // new window: never offer restore
     const check = async () => {
       const { filePath: initialPath, content: initialContent } = useDocumentStore.getState()
-      if (!initialPath) return   // no real file open — nothing to restore
       const autosave = await window.electronAPI?.autosaveCheck(initialPath)
       if (!autosave) return
       setRestoreOffer({
