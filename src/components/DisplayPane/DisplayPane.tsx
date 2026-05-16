@@ -100,6 +100,41 @@ export function DisplayPane() {
     }
   }, [])
 
+  // ── Paste handler: force a re-render so pasted markdown source is rendered ──
+  // The default paste inserts text literally into the contentEditable. Without
+  // this, the user sees '# Hello' as text instead of a rendered H1 until they
+  // click away. Strategy: after the default paste lands, run turndown + setContent
+  // immediately, then clear isEditingRef briefly so the useLayoutEffect can copy
+  // the freshly rendered shadow innerHTML back into the editable.
+  const handlePaste = useCallback(() => {
+    // Wait one tick so the default paste content is in the editable
+    setTimeout(() => {
+      const editable = editableRef.current
+      if (!editable) return
+      clearTimeout(inputTimerRef.current)
+      const markdown = td.turndown(editable.innerHTML)
+      if (markdown !== useDocumentStore.getState().content) {
+        useDocumentStore.getState().setContent(markdown)
+      }
+      // Allow the shadow→editable copy to fire on the next render
+      isEditingRef.current = false
+      // After React renders the new shadow and the layout effect copies it in,
+      // restore editing mode and put the cursor at the end of the editable.
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        isEditingRef.current = true
+        editable.focus()
+        const sel = window.getSelection()
+        if (sel) {
+          const range = document.createRange()
+          range.selectNodeContents(editable)
+          range.collapse(false)
+          sel.removeAllRanges()
+          sel.addRange(range)
+        }
+      }))
+    }, 0)
+  }, [])
+
   // ── Format bubble ─────────────────────────────────────────────────────────
   useEffect(() => {
     const handleMouseUp = (_e: MouseEvent) => {
@@ -296,6 +331,7 @@ export function DisplayPane() {
           onInput={handleInput}
           onClick={handleClick}
           onContextMenu={handleContextMenu}
+          onPaste={handlePaste}
           spellCheck={true}
         />
       </div>
