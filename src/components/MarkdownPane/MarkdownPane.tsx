@@ -432,7 +432,7 @@ export function MarkdownPane() {
       if (!view) return
       const dom = view.scrollDOM
       const hs = useDocumentStore.getState().headings
-      let startTop = 0, endTop = dom.scrollHeight
+      let startTop = 0, endTop = dom.scrollHeight - dom.clientHeight
       if (pos.prevHeadingId) {
         const h = hs.find(x => x.id === pos.prevHeadingId)
         if (h) startTop = cmLineTop(view, h.lineStart + 1)

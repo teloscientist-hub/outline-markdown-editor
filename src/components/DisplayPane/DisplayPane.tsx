@@ -40,16 +40,19 @@ export function DisplayPane() {
   } = useDocumentStore()
 
   const scrollRef    = useRef<HTMLDivElement>(null)   // outer scroll container
-  const shadowRef    = useRef<HTMLDivElement>(null)   // hidden ReactMarkdown render target
+  const shadowRef    = useRef<HTMLDivElement>(null)   // hidden ReactMarkdown render target (inner display-content div)
   const editableRef  = useRef<HTMLDivElement>(null)   // visible contenteditable div
 
   const activeHeadingRef  = useRef<string | null>(null)
-  const suppressScrollRef = useRef(false)
-  const suppressTimerRef  = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
-  const isEditingRef      = useRef(false)  // true while display pane is focused
-  const inputTimerRef     = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const suppressScrollRef  = useRef(false)
+  const suppressTimerRef   = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const isEditingRef       = useRef(false)  // true while display pane is focused
+  const inputTimerRef      = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const pendingPasteCopyRef = useRef(false)  // true when paste needs shadow→editable copy
 
   const [bubble, setBubble] = useState<BubbleState | null>(null)
+  // Used to trigger useLayoutEffect when content is unchanged but paste occurred
+  const [layoutTrigger, setLayoutTrigger] = useState(0)
 
   // ── Strip YAML frontmatter for display (--- ... ---) ────────────────────────
   const contentWithoutFrontmatter = useMemo(() => {
@@ -68,14 +71,38 @@ export function DisplayPane() {
 
   // ── Shadow → editable copy (runs synchronously before paint) ─────────────
   // Only updates the editable div when content changed from outside
-  // (i.e., the user is NOT currently typing in the display pane).
+  // (i.e., the user is NOT currently typing in the display pane),
+  // OR when a paste just happened (pendingPasteCopyRef = true).
   useLayoutEffect(() => {
-    if (isEditingRef.current) return
+    const isPaste = pendingPasteCopyRef.current
+    if (isEditingRef.current && !isPaste) return
     const shadow   = shadowRef.current
     const editable = editableRef.current
     if (!shadow || !editable) return
     editable.innerHTML = shadow.innerHTML
-  }, [visibleContent])
+    if (isPaste) {
+      pendingPasteCopyRef.current = false
+      // Restore editing mode and cursor after the DOM settles
+      requestAnimationFrame(() => {
+        const ed = editableRef.current
+        if (!ed) return
+        isEditingRef.current = true
+        // Only restore cursor if the editable still has (or can take) focus
+        if (document.activeElement === ed || document.activeElement === document.body) {
+          ed.focus()
+          const sel = window.getSelection()
+          if (sel) {
+            const range = document.createRange()
+            range.selectNodeContents(ed)
+            range.collapse(false)
+            sel.removeAllRanges()
+            sel.addRange(range)
+          }
+        }
+      })
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visibleContent, layoutTrigger])
 
   // ── Input handler: HTML → Markdown ────────────────────────────────────────
   const handleInput = useCallback(() => {
@@ -103,9 +130,9 @@ export function DisplayPane() {
   // ── Paste handler: force a re-render so pasted markdown source is rendered ──
   // The default paste inserts text literally into the contentEditable. Without
   // this, the user sees '# Hello' as text instead of a rendered H1 until they
-  // click away. Strategy: after the default paste lands, run turndown + setContent
-  // immediately, then clear isEditingRef briefly so the useLayoutEffect can copy
-  // the freshly rendered shadow innerHTML back into the editable.
+  // click away. Strategy: convert pasted HTML → markdown → setContent so React
+  // re-renders the shadow, then pendingPasteCopyRef=true lets the layout effect
+  // copy the formatted shadow HTML back into the editable.
   const handlePaste = useCallback(() => {
     // Wait one tick so the default paste content is in the editable
     setTimeout(() => {
@@ -113,25 +140,14 @@ export function DisplayPane() {
       if (!editable) return
       clearTimeout(inputTimerRef.current)
       const markdown = td.turndown(editable.innerHTML)
+      pendingPasteCopyRef.current = true
       if (markdown !== useDocumentStore.getState().content) {
+        // setContent → visibleContent changes → useLayoutEffect fires with pendingPasteCopyRef=true
         useDocumentStore.getState().setContent(markdown)
+      } else {
+        // Content unchanged — force a re-render so useLayoutEffect fires via layoutTrigger
+        setLayoutTrigger(n => n + 1)
       }
-      // Allow the shadow→editable copy to fire on the next render
-      isEditingRef.current = false
-      // After React renders the new shadow and the layout effect copies it in,
-      // restore editing mode and put the cursor at the end of the editable.
-      requestAnimationFrame(() => requestAnimationFrame(() => {
-        isEditingRef.current = true
-        editable.focus()
-        const sel = window.getSelection()
-        if (sel) {
-          const range = document.createRange()
-          range.selectNodeContents(editable)
-          range.collapse(false)
-          sel.removeAllRanges()
-          sel.addRange(range)
-        }
-      }))
     }, 0)
   }, [])
 
@@ -270,8 +286,14 @@ export function DisplayPane() {
     })
   }, [getAbsTop])
 
-  // ── Scroll to top when a new file is loaded ─────────────────────────────────
+  // ── Reset editing state and scroll to top when a new file is loaded ─────────
   useEffect(() => {
+    // If the display pane had focus when the file opened, isEditingRef may be
+    // stuck true — which would prevent the useLayoutEffect from copying the new
+    // content into the editable. Always reset it on file load.
+    isEditingRef.current = false
+    pendingPasteCopyRef.current = false
+    clearTimeout(inputTimerRef.current)
     if (!scrollRef.current) return
     suppressScrollRef.current = true
     clearTimeout(suppressTimerRef.current)
@@ -309,9 +331,12 @@ export function DisplayPane() {
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <>
-      {/* Hidden shadow renderer — ReactMarkdown writes here; we copy innerHTML to the editable div */}
-      <div ref={shadowRef} style={{ display: 'none' }} aria-hidden="true">
-        <div className="display-content">
+      {/* Hidden shadow renderer — ReactMarkdown writes here; we copy innerHTML to the editable div.
+          shadowRef points to the INNER display-content div so shadow.innerHTML is just the rendered
+          elements (h1, p, etc.) without an extra wrapper — prevents double-nested display-content
+          when the innerHTML is copied into the editable (which already has class="display-content"). */}
+      <div style={{ display: 'none' }} aria-hidden="true">
+        <div ref={shadowRef} className="display-content">
           <ReactMarkdown remarkPlugins={[remarkGfm]} components={shadowComponents}>
             {visibleContent}
           </ReactMarkdown>
