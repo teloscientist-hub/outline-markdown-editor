@@ -148,23 +148,16 @@ Built artifacts go to `release/`. The folder is gitignored.
 
 ## Known Quirks
 
-### ⚠️ Path contains Unicode apostrophe (U+2019)
-The project lives in a folder called **`mark's Mac Studio`** which uses a **curly apostrophe (U+2019 `'`)**, not a straight one (`'`). This matters when writing Python scripts or shell commands with hardcoded paths:
+### Path history note (2026-05-26 reorg)
+This project previously lived under an iCloud folder named **`mark's Mac Studio`** which contained a curly apostrophe (U+2019). That made hardcoded paths annoying: scripts needed `$'\xe2\x80\x99'` in bash or a `’` Unicode escape in Python.
 
-```python
-# WRONG — straight apostrophe breaks the string literal
-BASE = '/Users/mark/Documents/Documents - MML Mac Studio/...'
+After the 2026-05-26 reorg the project now lives at:
 
-# CORRECT — use Unicode escape in a heredoc
-BASE = '/Users/mark/Documents/Documents - MML Mac Studio/...'
+```
+/Users/mark/Library/CloudStorage/Dropbox-BPTNB/mark lewis/_GPT Meta/App Development/OutlineMarkdown
 ```
 
-In bash, inject the character with `$'\xe2\x80\x99'`:
-```bash
-cd "/Users/mark/Documents/Documents - mark"$'\xe2\x80\x99'"s Mac Studio/_GPT Meta/App Development/OutlineMarkdown"
-```
-
-Python scripts that manipulate files should use a heredoc (`python3 - << 'PYEOF' ... PYEOF`) to avoid the shell eating the apostrophe.
+The new path is **ASCII-clean** — no apostrophe-handling workarounds are needed. The previous workaround notes (bash `$'\xe2\x80\x99'` injection, Python heredoc tricks) have been removed because they no longer apply. If you still see scripts using those patterns, they're stale and can be simplified.
 
 ---
 
