@@ -264,7 +264,9 @@ export function DisplayPane() {
   // ── Incoming scroll from Markdown pane ───────────────────────────────────
   useEffect(() => {
     return subscribeScroll('display', (pos) => {
-      if (suppressScrollRef.current || !scrollRef.current || !editableRef.current) return
+      // While the user is typing in the display pane they own their scroll position;
+      // don't let incoming markdown-pane events yank the view away.
+      if (suppressScrollRef.current || isEditingRef.current || !scrollRef.current || !editableRef.current) return
       const container = scrollRef.current
       const editable  = editableRef.current
       let startTop = 0

@@ -414,13 +414,26 @@ export function MarkdownPane() {
   }, [loadKey])
 
   // ── Sync content from outside ─────────────────────────────────────────────
+  // When content arrives from outside (display pane typing, outline moves, etc.),
+  // suppress scroll-sync publication while CodeMirror absorbs the change.
+  // Without this, CodeMirror scrolls to the mapped cursor position (often the end
+  // of the new document), fires a scroll event, and that syncs the display pane
+  // to the end — even though the user was editing in the middle of the display.
   useEffect(() => {
     const view = viewRef.current
     if (!view) return
     const current = view.state.doc.toString()
     if (current !== content) {
+      // Save current scroll before dispatch — CM will auto-scroll to the cursor
+      const prevScrollTop = view.scrollDOM.scrollTop
+      // Suppress scroll-sync publication during the content swap
+      suppressScrollRef.current = true
+      clearTimeout(suppressTimerRef.current)
+      suppressTimerRef.current = setTimeout(() => { suppressScrollRef.current = false }, 200)
       const anchor = Math.min(view.state.selection.main.anchor, content.length)
       view.dispatch({ changes: { from: 0, to: current.length, insert: content }, selection: { anchor } })
+      // Restore the visual scroll position so the view doesn't jump
+      view.scrollDOM.scrollTop = prevScrollTop
     }
   }, [content])
 
