@@ -1,5 +1,5 @@
 'use strict';
-const { app, BrowserWindow, ipcMain, dialog, Menu, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, Menu, shell, screen } = require('electron');
 const path   = require('path');
 const crypto = require('crypto');
 const fs = require('fs');
@@ -62,9 +62,29 @@ function pushRecentFile(filePath) {
 }
 
 // ── Window creation ───────────────────────────────────────────────────────────
+const CASCADE = 28;
+
+function getCascadePosition() {
+  const all = BrowserWindow.getAllWindows();
+  if (all.length === 0) return {};
+  const ref = BrowserWindow.getFocusedWindow() || all[all.length - 1];
+  const { x, y } = ref.getBounds();
+  const display = screen.getDisplayNearestPoint({ x, y });
+  const wa = display.workArea;
+  let nx = x + CASCADE;
+  let ny = y + CASCADE;
+  // Wrap if the new window would fall outside the work area
+  if (nx + 1400 > wa.x + wa.width || ny + 900 > wa.y + wa.height) {
+    nx = wa.x + CASCADE;
+    ny = wa.y + CASCADE;
+  }
+  return { x: nx, y: ny };
+}
+
 function createWindow(filePath = null) {
   const win = new BrowserWindow({
     width: 1400, height: 900, minWidth: 800, minHeight: 600,
+    ...getCascadePosition(),
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
