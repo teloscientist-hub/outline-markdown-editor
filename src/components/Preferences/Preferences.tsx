@@ -3,22 +3,24 @@ import './Preferences.css'
 
 interface Props { onClose: () => void }
 
-type StartupMode = 'readme' | 'blank' | 'recent'
+type StartupMode = 'auto' | 'readme' | 'blank' | 'recent'
 
 export function Preferences({ onClose }: Props) {
-  const [startup, setStartup] = useState<StartupMode>('readme')
+  const [startup, setStartup] = useState<StartupMode>('auto')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     window.electronAPI?.getPreferences().then(p => {
-      setStartup((p?.startup as StartupMode) ?? 'readme')
+      setStartup((p?.startup as StartupMode) ?? 'auto')
       setLoading(false)
     })
   }, [])
 
   const handleSave = async () => {
     const prefs = await window.electronAPI?.getPreferences() ?? {}
-    await window.electronAPI?.setPreferences({ ...prefs, startup })
+    // startupChosen marks this as an explicit user choice so it is never
+    // re-migrated by the legacy 'readme' → 'auto' migration in main.
+    await window.electronAPI?.setPreferences({ ...prefs, startup, startupChosen: true })
     onClose()
   }
 
@@ -37,7 +39,8 @@ export function Preferences({ onClose }: Props) {
             <label className="prefs-label">On Launch</label>
             <div className="prefs-options">
               {([
-                ['readme',  'Open README document'],
+                ['auto',    'Show README for the first few launches, then blank'],
+                ['readme',  'Always open README document'],
                 ['blank',   'Open blank document'],
                 ['recent',  'Open most recent document'],
               ] as [StartupMode, string][]).map(([value, label]) => (

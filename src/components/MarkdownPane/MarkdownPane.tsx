@@ -6,13 +6,16 @@ import { markdown, markdownLanguage } from '@codemirror/lang-markdown'
 import { syntaxHighlighting, HighlightStyle, syntaxTree } from '@codemirror/language'
 import { tags } from '@lezer/highlight'
 import { defaultKeymap, historyKeymap, history } from '@codemirror/commands'
+import { search } from '@codemirror/search'
 import { useDocumentStore } from '../../store/documentStore'
 import { computeHiddenLines, getHeadingAtLine, getHeadingForLine } from '../../model/documentModel'
 import { publishScroll, subscribeScroll } from '../../scrollSync'
 import { applyFormatting } from '../../formatting'
 import { setFormatter, clearFormatter } from '../../formatBus'
 import type { FormatType } from '../../formatBus'
+import { setFindListener, clearFindListener } from '../../findBus'
 import { FormatBubble } from '../FormatBubble/FormatBubble'
+import { FindReplace } from '../FindReplace/FindReplace'
 import './MarkdownPane.css'
 
 // ── MarkEdit-like highlight style ─────────────────────────────────────────────
@@ -206,6 +209,10 @@ export function MarkdownPane() {
   // Bubble: null = hidden, {x,y} = visible at viewport position
   const [bubble, setBubble] = useState<{ x: number; y: number; level: number } | null>(null)
 
+  // Find & Replace bar
+  const [findOpen, setFindOpen] = useState(false)
+  const [findMode, setFindMode] = useState<'find' | 'replace'>('find')
+
   const {
     content, loadKey,
     headings, foldedIds,
@@ -271,6 +278,15 @@ export function MarkdownPane() {
     { key: 'Mod-Shift-t', preventDefault: true, run: (v) => { applyFormatting(v, 'todo'); return true } },
   ]), [])
 
+  // ── Find bus listener ──────────────────────────────────────────────────────
+  useEffect(() => {
+    setFindListener((mode) => {
+      setFindMode(mode)
+      setFindOpen(true)
+    })
+    return () => clearFindListener()
+  }, [])
+
   // ── Create editor (once) ──────────────────────────────────────────────────
   useEffect(() => {
     if (!editorRef.current) return
@@ -332,6 +348,7 @@ export function MarkdownPane() {
         keymap.of([...defaultKeymap, ...historyKeymap]),
         structuralKeymap(),
         formatKeymap(),
+        search({ top: false }),
         scrollSyncExt,
         EditorView.updateListener.of((update: ViewUpdate) => {
           if (update.docChanged) {
@@ -483,6 +500,14 @@ export function MarkdownPane() {
 
   return (
     <div className="markdown-pane">
+      {findOpen && (
+        <FindReplace
+          mode={findMode}
+          onModeChange={setFindMode}
+          onClose={() => { setFindOpen(false); viewRef.current?.focus() }}
+          viewRef={viewRef}
+        />
+      )}
       <div ref={editorRef} className="cm-editor-wrapper" />
       {bubble && (
         <FormatBubble

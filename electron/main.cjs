@@ -13,6 +13,16 @@ function getDocsPath() {
     : path.join(process.resourcesPath, 'docs')
 }
 
+// Bundled reference docs (Feature Overview, User's Manual) are read-only material
+// shipped with the app. They must never be autosaved or offered for restore.
+function isBundledDoc(filePath) {
+  if (!filePath) return false;
+  try {
+    const rel = path.relative(getDocsPath(), filePath);
+    return !rel.startsWith('..') && !path.isAbsolute(rel);
+  } catch { return false; }
+}
+
 // ── Per-window data ──────────────────────────────────────────────────────────
 const windowData = new Map();
 
@@ -40,11 +50,18 @@ function readPrefs() {
       p.recentFiles = p.recentFile ? [p.recentFile] : [];
       delete p.recentFile;
     }
+    // Migrate the legacy default 'readme' (which opened the welcome doc on every
+    // launch) to 'auto' — show it for the first few launches, then open blank.
+    // Only migrate if the user never explicitly picked a startup mode themselves.
+    if (p.startup === 'readme' && !p.startupChosen) p.startup = 'auto';
     return p;
   } catch {
-    return { startup: 'readme', recentFiles: [], launchCount: 0, startupAsked: false };
+    return { startup: 'auto', recentFiles: [], launchCount: 0 };
   }
 }
+
+// Launches 1–3 show the welcome README; launch 4+ opens a blank document.
+const README_LAUNCH_LIMIT = 3;
 
 function writePrefs(prefs) {
   try { fs.writeFileSync(PREFS_PATH, JSON.stringify(prefs, null, 2), 'utf-8'); }
@@ -282,7 +299,29 @@ function buildMenu() {
         { role: 'toggleDevTools' },
       ],
     },
-    { role: 'editMenu' },
+    {
+      label: 'Edit',
+      submenu: [
+        { role: 'undo' },
+        { role: 'redo' },
+        { type: 'separator' },
+        { role: 'cut' },
+        { role: 'copy' },
+        { role: 'paste' },
+        { role: 'selectAll' },
+        { type: 'separator' },
+        {
+          label: 'Find…',
+          accelerator: 'CmdOrCtrl+F',
+          click: () => send('menu:find'),
+        },
+        {
+          label: 'Find & Replace…',
+          accelerator: 'CmdOrCtrl+H',
+          click: () => send('menu:find-replace'),
+        },
+      ],
+    },
     {
       label: 'Window',
       submenu: [
@@ -344,7 +383,12 @@ ipcMain.on('app:get-initial-info-sync', (event) => {
     } catch {
       event.returnValue = { type: 'readme', filePath: null, content: null, prefs };
     }
+  } else if (prefs.startup === 'auto') {
+    // Show the welcome README for the first few launches, then open blank.
+    const type = (prefs.launchCount || 0) <= README_LAUNCH_LIMIT ? 'readme' : 'blank';
+    event.returnValue = { type, filePath: null, content: type === 'blank' ? '' : null, prefs };
   } else {
+    // Explicit 'readme' — always show the welcome document.
     event.returnValue = { type: 'readme', filePath: null, content: null, prefs };
   }
 });
@@ -429,6 +473,8 @@ ipcMain.handle('link:context-menu', (event, url) => {
 
 // Write content to the autosave slot for this filePath
 ipcMain.handle('autosave:write', (_, { content, filePath }) => {
+  // Bundled reference docs are read-only — never autosave them.
+  if (isBundledDoc(filePath)) return;
   try {
     const p = getAutosavePath(filePath);
     fs.writeFileSync(p, content, 'utf-8');
@@ -454,6 +500,14 @@ ipcMain.handle('autosave:check', (_, { filePath }) => {
   try {
     const p = getAutosavePath(filePath);
     if (!fs.existsSync(p)) return null;
+
+    // Bundled reference docs are read-only — never offer a restore for them.
+    // Clean up any stale autosave left over from before this rule existed.
+    if (isBundledDoc(filePath)) {
+      try { fs.unlinkSync(p); } catch {}
+      try { fs.unlinkSync(getAutosaveMetaPath(filePath)); } catch {}
+      return null;
+    }
 
     const autosaveStat = fs.statSync(p);
 

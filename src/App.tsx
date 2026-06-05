@@ -6,6 +6,7 @@ import { Preferences } from './components/Preferences/Preferences'
 import { DocumentInfo } from './components/DocumentInfo/DocumentInfo'
 import { applyFormat } from './formatBus'
 import type { FormatType } from './formatBus'
+import { openFind, openFindReplace } from './findBus'
 import { useDocumentStore } from './store/documentStore'
 import './App.css'
 
@@ -36,6 +37,8 @@ declare global {
       onMenuPreferences:   (cb: () => void) => void
       onMenuDocInfo:       (cb: () => void) => void
       onMenuFormat:        (cb: (type: FormatType) => void) => void
+      onMenuFind:          (cb: () => void) => void
+      onMenuFindReplace:   (cb: () => void) => void
       onOpenFile:          (cb: (filePath: string) => void) => void
       autosaveWrite:  (content: string, filePath: string | null) => Promise<void>
       autosaveDelete: (filePath: string | null) => Promise<void>
@@ -72,7 +75,6 @@ export function App() {
   const [restoreOffer, setRestoreOffer] = useState<{
     content: string; savedAt: string; originalContent: string; filePath: string | null
   } | null>(null)
-  const [showStartupPrompt, setShowStartupPrompt] = useState(false)
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // ── Window title ────────────────────────────────────────────────────────────
@@ -163,37 +165,6 @@ export function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // ── First-time startup prompt: after 3 launches, ask if user wants README or blank ──
-  useEffect(() => {
-    const info = window.electronAPI?.initialInfo
-    if (info?.type === 'blank') return  // new window — never prompt
-    const prefs = (info?.prefs ?? {}) as Record<string, unknown>
-    const launchCount  = (prefs.launchCount  as number)  || 0
-    const startupAsked = (prefs.startupAsked as boolean) || false
-    if (!startupAsked && launchCount > 3) setShowStartupPrompt(true)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  // ── Apply the user's startup-prompt answer ─────────────────────────────────
-  const handleStartupChoice = useCallback(async (choice: 'readme' | 'blank') => {
-    setShowStartupPrompt(false)
-    // Persist the preference
-    try {
-      const cur = await window.electronAPI?.getPreferences()
-      await window.electronAPI?.setPreferences({
-        ...(cur || {}),
-        startup: choice,
-        startupAsked: true,
-      })
-    } catch {}
-    // If they chose blank, clear the current README they're looking at
-    if (choice === 'blank') {
-      useDocumentStore.getState().loadFile(null as unknown as string, '')
-      // Reset isDirty so we don't accidentally trigger autosaves on the empty doc
-      useDocumentStore.setState({ filePath: null, content: '', isDirty: false })
-    }
-  }, [])
-
     // ── Electron menu events ────────────────────────────────────────────────────
   useEffect(() => {
     if (!window.electronAPI) return
@@ -207,10 +178,13 @@ export function App() {
     window.electronAPI.onMenuPreferences(() => setShowPreferences(true))
     window.electronAPI.onMenuDocInfo(() => setShowDocInfo(true))
     window.electronAPI.onMenuFormat((type) => applyFormat(type))
+    window.electronAPI.onMenuFind(() => openFind())
+    window.electronAPI.onMenuFindReplace(() => openFindReplace())
     return () => {
       ['menu:open','menu:save','menu:save-as',
        'menu:toggle-outline','menu:toggle-markdown','menu:toggle-display',
-       'menu:all-panes','menu:preferences','menu:doc-info','menu:format']
+       'menu:all-panes','menu:preferences','menu:doc-info','menu:format',
+       'menu:find','menu:find-replace']
         .forEach(c => window.electronAPI?.removeAllListeners(c))
     }
   }, [filePath, content, handleOpen, handleSave, handleSaveAs,
@@ -236,6 +210,8 @@ export function App() {
       if (e.key === 's' &&  e.shiftKey) { e.preventDefault(); handleSaveAs() }
       if (e.key === 'o') { e.preventDefault(); handleOpen() }
       if (e.key === ',') { e.preventDefault(); setShowPreferences(true) }
+      if (e.key === 'f') { e.preventDefault(); openFind() }
+      if (e.key === 'h') { e.preventDefault(); openFindReplace() }
       if (e.key === 'i' && !e.shiftKey) { /* handled by CM keymap (italic) */ }
       if (e.key === 'i' &&  e.shiftKey) { e.preventDefault(); setShowDocInfo(true) }
     }
@@ -316,30 +292,6 @@ export function App() {
           </div>
         )
       })()}
-
-      {/* Startup preference prompt — appears after 3 launches */}
-      {showStartupPrompt && (
-        <div className="autosave-restore-overlay">
-          <div className="autosave-restore-dialog">
-            <h3>How should the app open?</h3>
-            <p>You can either start with the README each time, or with a fresh blank document.</p>
-            <div className="autosave-restore-actions">
-              <button
-                className="autosave-btn autosave-btn--primary"
-                onClick={() => handleStartupChoice('blank')}
-              >
-                Start with a blank document
-              </button>
-              <button
-                className="autosave-btn"
-                onClick={() => handleStartupChoice('readme')}
-              >
-                Keep showing the README
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

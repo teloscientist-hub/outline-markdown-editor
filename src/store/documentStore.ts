@@ -7,6 +7,8 @@ const SAMPLE_DOCUMENT = `# Welcome to Outline Markdown Editor
 
 A tri-pane Markdown editor with real outline control. Use the **Outline** pane on the left to navigate and restructure your document, the **Markdown** pane in the center to write, and the **Display** pane on the right to see the rendered result.
 
+You can reopen this guide at any time from **Help › Feature Overview** in the menu bar. A full **User's Manual** is also available under the **Help** menu.
+
 ## Getting Started
 
 - **Open a file** — File › Open (⌘O), or drag a .md file onto the dock icon

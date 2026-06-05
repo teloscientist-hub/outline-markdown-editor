@@ -1,0 +1,201 @@
+.find-replace-bar {
+  flex-shrink: 0;
+  background: var(--color-panel-bg, #2a2a2a);
+  border-bottom: 1px solid var(--color-border, #3a3a3a);
+  padding: 6px 10px 6px 54px; /* left-pad clears the line-number gutter */
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+  z-index: 10;
+}
+
+.find-replace-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.find-replace-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.find-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.find-input {
+  flex: 1;
+  width: 100%;
+  background: var(--color-editor-bg, #1e1e1e);
+  border: 1px solid var(--color-border, #3a3a3a);
+  border-radius: 4px;
+  color: var(--color-text, #d4d4d4);
+  font-size: 13px;
+  padding: 4px 8px;
+  padding-right: 80px;
+  outline: none;
+  font-family: inherit;
+}
+
+.find-input:focus {
+  border-color: var(--color-active, #569cd6);
+}
+
+.find-match-count {
+  position: absolute;
+  right: 6px;
+  font-size: 11px;
+  color: var(--color-text-muted, #858585);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.find-match-count--none {
+  color: #e06c6c;
+}
+
+.find-replace-options {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.find-option-btn {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  color: var(--color-text-muted, #858585);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 5px;
+  cursor: pointer;
+  line-height: 1;
+  transition: color 0.1s, background 0.1s;
+}
+
+.find-option-btn:hover {
+  color: var(--color-text, #d4d4d4);
+  background: var(--color-hover, rgba(255,255,255,0.08));
+}
+
+.find-option-btn--active {
+  color: var(--color-active, #569cd6);
+  border-color: var(--color-active, #569cd6);
+  background: rgba(86,156,214,0.12);
+}
+
+.find-replace-nav {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.find-nav-btn {
+  background: none;
+  border: 1px solid var(--color-border, #3a3a3a);
+  border-radius: 3px;
+  color: var(--color-text, #d4d4d4);
+  font-size: 13px;
+  padding: 2px 7px;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.find-nav-btn:hover:not(:disabled) {
+  background: var(--color-hover, rgba(255,255,255,0.08));
+}
+
+.find-nav-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.find-replace-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.find-action-btn {
+  background: var(--color-hover, rgba(255,255,255,0.06));
+  border: 1px solid var(--color-border, #3a3a3a);
+  border-radius: 4px;
+  color: var(--color-text, #d4d4d4);
+  font-size: 12px;
+  padding: 3px 10px;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.find-action-btn:hover:not(:disabled) {
+  background: var(--color-active, #569cd6);
+  border-color: var(--color-active, #569cd6);
+  color: #fff;
+}
+
+.find-action-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.find-replace-toggles {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+  margin-left: 2px;
+}
+
+.find-mode-btn,
+.find-close-btn {
+  background: none;
+  border: none;
+  color: var(--color-text-muted, #858585);
+  font-size: 14px;
+  padding: 2px 5px;
+  cursor: pointer;
+  border-radius: 3px;
+  line-height: 1;
+  transition: color 0.1s, background 0.1s;
+}
+
+.find-mode-btn:hover,
+.find-close-btn:hover {
+  color: var(--color-text, #d4d4d4);
+  background: var(--color-hover, rgba(255,255,255,0.08));
+}
+
+/* Light theme overrides */
+:root.theme-light .find-replace-bar {
+  background: #f3f3f3;
+  border-color: #d0d0d0;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+}
+
+:root.theme-light .find-input {
+  background: #fff;
+  border-color: #c0c0c0;
+  color: #1e1e1e;
+}
+
+:root.theme-light .find-input:focus {
+  border-color: #1556ab;
+}
+
+:root.theme-light .find-nav-btn,
+:root.theme-light .find-action-btn {
+  border-color: #c0c0c0;
+  color: #333;
+}
+
+:root.theme-light .find-option-btn--active {
+  color: #1556ab;
+  border-color: #1556ab;
+  background: rgba(21,86,171,0.1);
+}
