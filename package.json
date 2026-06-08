@@ -4,6 +4,11 @@
   "version": "1.0.6",
   "type": "module",
   "main": "electron/main.cjs",
+  "homepage": "https://github.com/teloscientist-hub/outline-markdown-editor",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/teloscientist-hub/outline-markdown-editor.git"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
