@@ -38,6 +38,8 @@ declare global {
       onMenuFormat:        (cb: (type: FormatType) => void) => void
       onMenuFind:          (cb: () => void) => void
       onMenuFindReplace:   (cb: () => void) => void
+      onMenuMoveSectionUp:   (cb: () => void) => void
+      onMenuMoveSectionDown: (cb: () => void) => void
       onOpenFile:          (cb: (filePath: string) => void) => void
       autosaveWrite:  (content: string, filePath: string | null) => Promise<void>
       autosaveDelete: (filePath: string | null) => Promise<void>
@@ -180,11 +182,20 @@ export function App() {
     window.electronAPI.onMenuFormat((type) => applyFormat(type))
     window.electronAPI.onMenuFind(() => openFind())
     window.electronAPI.onMenuFindReplace(() => openFindReplace())
+    window.electronAPI.onMenuMoveSectionUp(() => {
+      const s = useDocumentStore.getState()
+      if (s.activeHeadingId) s.moveSectionUp(s.activeHeadingId)
+    })
+    window.electronAPI.onMenuMoveSectionDown(() => {
+      const s = useDocumentStore.getState()
+      if (s.activeHeadingId) s.moveSectionDown(s.activeHeadingId)
+    })
     return () => {
       ['menu:open','menu:save','menu:save-as',
        'menu:toggle-outline','menu:toggle-markdown','menu:toggle-display',
        'menu:all-panes','menu:preferences','menu:doc-info','menu:format',
-       'menu:find','menu:find-replace']
+       'menu:find','menu:find-replace',
+       'menu:move-section-up','menu:move-section-down']
         .forEach(c => window.electronAPI?.removeAllListeners(c))
     }
   }, [filePath, content, handleOpen, handleSave, handleSaveAs,
