@@ -194,7 +194,32 @@ function buildMenu() {
   const focused = BrowserWindow.getFocusedWindow();
   const allWins = BrowserWindow.getAllWindows();
 
-  const send = (channel, ...args) => focused?.webContents.send(channel, ...args);
+  // Resolve the focused window at click time (not build time) so menu actions
+  // always reach the currently-active window even if the menu wasn't rebuilt.
+  const send = (channel, ...args) => {
+    const target = BrowserWindow.getFocusedWindow() || focused;
+    target?.webContents.send(channel, ...args);
+  };
+
+  // Format a shortcut for display in the Shortcuts reference menu.
+  // mac → symbol form (⌥⇧⌘X, modifier order ⌃⌥⇧⌘); others → Ctrl+Shift+Alt+X.
+  const sc = ({ ctrl, alt, shift, cmd, key }) => isMac
+    ? `${ctrl ? '⌃' : ''}${alt ? '⌥' : ''}${shift ? '⇧' : ''}${cmd ? '⌘' : ''}${key}`
+    : [cmd && 'Ctrl', ctrl && 'Ctrl', shift && 'Shift', alt && 'Alt', key].filter(Boolean).join('+');
+  // A Shortcuts-menu row: shows "Label    ⌘X" and, when given an onClick,
+  // is clickable (runs the same action). The shortcut lives in the label text
+  // (not the accelerator field) so it does not double-register and conflict
+  // with the real File/Edit/View/Format menu accelerators.
+  const ref = (label, parts, onClick) => ({
+    label: `${label} — ${sc(parts)}`,
+    ...(onClick ? { click: onClick } : { enabled: false }),
+  });
+
+  // New blank window (mirrors File > New Window behavior)
+  const newBlankWindow = () => {
+    const w = createWindow(null);
+    windowData.set(w.id, { filePath: null, forceBlank: true });
+  };
 
   // Recent Files submenu
   const prefs = readPrefs();
@@ -295,7 +320,7 @@ function buildMenu() {
         { type: 'separator' },
         { label: 'All Panes',       accelerator: 'CmdOrCtrl+0', click: () => send('menu:all-panes') },
         { type: 'separator' },
-        { role: 'reload' },
+        { role: 'reload', accelerator: 'CmdOrCtrl+Shift+R' },
         { role: 'toggleDevTools' },
       ],
     },
@@ -317,7 +342,7 @@ function buildMenu() {
         },
         {
           label: 'Find & Replace…',
-          accelerator: 'CmdOrCtrl+H',
+          accelerator: 'CmdOrCtrl+R',
           click: () => send('menu:find-replace'),
         },
       ],
@@ -334,6 +359,52 @@ function buildMenu() {
           checked: win.id === focused?.id,
           click: () => { if (win.isMinimized()) win.restore(); win.focus(); },
         })),
+      ],
+    },
+    {
+      label: 'Shortcuts',
+      submenu: [
+        { label: 'Keyboard Shortcuts', enabled: false },
+        { type: 'separator' },
+
+        { label: 'File', enabled: false },
+        ref('New Window',     { cmd: true, key: 'N' }),
+        ref('Open',           { cmd: true, key: 'O' }),
+        ref('Save',           { cmd: true, key: 'S' }),
+        ref('Save As',        { cmd: true, shift: true, key: 'S' }),
+        ref('Document Info',  { cmd: true, shift: true, key: 'I' }),
+        { type: 'separator' },
+
+        { label: 'Find', enabled: false },
+        ref('Find',            { cmd: true, key: 'F' }),
+        ref('Find & Replace',  { cmd: true, key: 'R' }),
+        { type: 'separator' },
+
+        { label: 'View', enabled: false },
+        ref('Toggle Outline',  { cmd: true, key: '1' }),
+        ref('Toggle Markdown', { cmd: true, key: '2' }),
+        ref('Toggle Display',  { cmd: true, key: '3' }),
+        ref('Show All Panes',  { cmd: true, key: '0' }),
+        { type: 'separator' },
+
+        { label: 'Format', enabled: false },
+        ref('Headings 1–6',  { cmd: true, alt: true, key: '1 … 6' }),
+        ref('Bold',          { cmd: true, key: 'B' }),
+        ref('Italic',        { cmd: true, key: 'I' }),
+        ref('Bullet List',   { cmd: true, shift: true, key: '8' }),
+        ref('Numbered List', { cmd: true, shift: true, key: '7' }),
+        ref('Todo Item',     { cmd: true, shift: true, key: 'T' }),
+        ref('Promote Heading', { cmd: true, key: '[' }),
+        ref('Demote Heading',  { cmd: true, key: ']' }),
+        { type: 'separator' },
+
+        { label: 'Outline / Sections', enabled: false },
+        ref('Move Section Up',   { alt: true, key: '↑' }),
+        ref('Move Section Down', { alt: true, key: '↓' }),
+        { type: 'separator' },
+
+        { label: 'App', enabled: false },
+        ref('Preferences', { cmd: true, key: ',' }),
       ],
     },
     {

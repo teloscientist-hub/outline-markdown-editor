@@ -85,6 +85,10 @@ export interface DocumentState {
   showMarkdown: boolean
   showDisplay: boolean
 
+  // Find & Replace bar (lives in the Markdown pane)
+  findOpen: boolean
+  findMode: 'find' | 'replace'
+
   // Navigation
   activeHeadingId: string | null
 
@@ -123,6 +127,10 @@ export interface DocumentState {
   toggleMarkdown: () => void
   toggleDisplay: () => void
   showAllPanes: () => void
+
+  openFind: () => void
+  openFindReplace: () => void
+  closeFind: () => void
 
   setActiveHeading: (id: string | null) => void
   moveSection: (fromId: string, toId: string, placement: 'before' | 'after') => void
@@ -179,6 +187,8 @@ export const useDocumentStore = create<DocumentState>()(
     depthMode: 0,
     showOutline: true,
     showMarkdown: true,
+    findOpen: false,
+    findMode: 'find' as 'find' | 'replace',
     showDisplay: true,
     activeHeadingId: null,
     headingsOnlyMode: false,
@@ -287,6 +297,11 @@ export const useDocumentStore = create<DocumentState>()(
     },
 
     showAllPanes: () => set({ showOutline: true, showMarkdown: true, showDisplay: true }),
+
+    // Find/Replace: always force the Markdown pane visible so the bar can render
+    openFind:        () => set({ findOpen: true, findMode: 'find',    showMarkdown: true }),
+    openFindReplace: () => set({ findOpen: true, findMode: 'replace', showMarkdown: true }),
+    closeFind:       () => set({ findOpen: false }),
 
     setActiveHeading: (id) => set({ activeHeadingId: id }),
 

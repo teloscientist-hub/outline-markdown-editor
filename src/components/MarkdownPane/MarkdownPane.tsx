@@ -13,7 +13,6 @@ import { publishScroll, subscribeScroll } from '../../scrollSync'
 import { applyFormatting } from '../../formatting'
 import { setFormatter, clearFormatter } from '../../formatBus'
 import type { FormatType } from '../../formatBus'
-import { setFindListener, clearFindListener } from '../../findBus'
 import { FormatBubble } from '../FormatBubble/FormatBubble'
 import { FindReplace } from '../FindReplace/FindReplace'
 import './MarkdownPane.css'
@@ -209,9 +208,6 @@ export function MarkdownPane() {
   // Bubble: null = hidden, {x,y} = visible at viewport position
   const [bubble, setBubble] = useState<{ x: number; y: number; level: number } | null>(null)
 
-  // Find & Replace bar
-  const [findOpen, setFindOpen] = useState(false)
-  const [findMode, setFindMode] = useState<'find' | 'replace'>('find')
 
   const {
     content, loadKey,
@@ -220,6 +216,7 @@ export function MarkdownPane() {
     headingsOnlyMode, depthMode,
     promoteSectionById, demoteSectionById,
     moveSectionUp, moveSectionDown,
+    findOpen, findMode, openFind, openFindReplace, closeFind,
   } = useDocumentStore()
 
   const hiddenLines = useMemo(
@@ -277,15 +274,6 @@ export function MarkdownPane() {
     { key: 'Mod-Shift-7', preventDefault: true, run: (v) => { applyFormatting(v, 'ol');   return true } },
     { key: 'Mod-Shift-t', preventDefault: true, run: (v) => { applyFormatting(v, 'todo'); return true } },
   ]), [])
-
-  // ── Find bus listener ──────────────────────────────────────────────────────
-  useEffect(() => {
-    setFindListener((mode) => {
-      setFindMode(mode)
-      setFindOpen(true)
-    })
-    return () => clearFindListener()
-  }, [])
 
   // ── Create editor (once) ──────────────────────────────────────────────────
   useEffect(() => {
@@ -503,8 +491,8 @@ export function MarkdownPane() {
       {findOpen && (
         <FindReplace
           mode={findMode}
-          onModeChange={setFindMode}
-          onClose={() => { setFindOpen(false); viewRef.current?.focus() }}
+          onModeChange={(m) => (m === 'replace' ? openFindReplace() : openFind())}
+          onClose={() => { closeFind(); viewRef.current?.focus() }}
           viewRef={viewRef}
         />
       )}

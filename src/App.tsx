@@ -6,7 +6,6 @@ import { Preferences } from './components/Preferences/Preferences'
 import { DocumentInfo } from './components/DocumentInfo/DocumentInfo'
 import { applyFormat } from './formatBus'
 import type { FormatType } from './formatBus'
-import { openFind, openFindReplace } from './findBus'
 import { useDocumentStore } from './store/documentStore'
 import './App.css'
 
@@ -68,6 +67,7 @@ export function App() {
     content, filePath, isDirty, theme,
     loadFile, markSaved,
     toggleOutline, toggleMarkdown, toggleDisplay, showAllPanes,
+    openFind, openFindReplace,
   } = useDocumentStore()
 
   const [showPreferences, setShowPreferences] = useState(false)
@@ -211,7 +211,7 @@ export function App() {
       if (e.key === 'o') { e.preventDefault(); handleOpen() }
       if (e.key === ',') { e.preventDefault(); setShowPreferences(true) }
       if (e.key === 'f') { e.preventDefault(); openFind() }
-      if (e.key === 'h') { e.preventDefault(); openFindReplace() }
+      if (e.key === 'r') { e.preventDefault(); openFindReplace() }
       if (e.key === 'i' && !e.shiftKey) { /* handled by CM keymap (italic) */ }
       if (e.key === 'i' &&  e.shiftKey) { e.preventDefault(); setShowDocInfo(true) }
     }
