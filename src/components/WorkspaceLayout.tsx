@@ -8,7 +8,7 @@ import './WorkspaceLayout.css'
 
 const MIN_PANE = 160
 const MAX_OUTLINE = 900
-const DEFAULT_OUTLINE = 330
+const DEFAULT_OUTLINE = 380
 const DEFAULT_MARKDOWN_RATIO = 0.5  // of remaining space
 
 export function WorkspaceLayout() {
