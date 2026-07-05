@@ -8,6 +8,7 @@ export function StatusBar() {
     cursorLine, cursorCol,
     activeHeadingId, headings,
     theme, setTheme,
+    hardLineBreaks, toggleHardLineBreaks,
   } = useDocumentStore()
 
   // Build breadcrumb from active heading
@@ -40,6 +41,14 @@ export function StatusBar() {
         <span className="status-item" title="Cursor position">
           Ln {cursorLine + 1}, Col {cursorCol + 1}
         </span>
+        <span className="status-sep">·</span>
+        <button
+          className={`status-btn${hardLineBreaks ? ' status-btn-active' : ''}`}
+          onClick={toggleHardLineBreaks}
+          title={`Line breaks: ${hardLineBreaks ? 'preserved' : 'collapsed (standard Markdown)'} (click to toggle)`}
+        >
+          ↵ {hardLineBreaks ? 'on' : 'off'}
+        </button>
         <span className="status-sep">·</span>
         <button
           className="status-btn"

@@ -102,6 +102,9 @@ export interface DocumentState {
   // Theme
   theme: 'system' | 'light' | 'dark'
 
+  // Display pane: render single line breaks as <br> instead of collapsing them (CommonMark default)
+  hardLineBreaks: boolean
+
   // Word / char count
   wordCount: number
   charCount: number
@@ -154,6 +157,7 @@ export interface DocumentState {
   setCursorLine: (line: number) => void
   setCursorPos: (line: number, col: number) => void
   setTheme: (theme: 'system' | 'light' | 'dark') => void
+  toggleHardLineBreaks: () => void
   updateWordCount: (text: string) => void
 }
 
@@ -195,6 +199,7 @@ export const useDocumentStore = create<DocumentState>()(
     cursorLine: 0,
     cursorCol: 0,
     theme: 'system',
+    hardLineBreaks: false,
     history: [] as string[],
     loadKey: 0,
 
@@ -310,6 +315,7 @@ export const useDocumentStore = create<DocumentState>()(
     setCursorLine: (line) => set({ cursorLine: line }),
     setCursorPos: (line, col) => set({ cursorLine: line, cursorCol: col }),
     setTheme: (theme) => set({ theme }),
+    toggleHardLineBreaks: () => set(state => ({ hardLineBreaks: !state.hardLineBreaks })),
     updateWordCount: (text) => {
       const words = text.trim() ? text.trim().split(/\s+/).length : 0
       set({ wordCount: words, charCount: text.length })

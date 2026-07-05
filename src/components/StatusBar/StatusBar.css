@@ -68,3 +68,7 @@
   background: var(--color-hover);
   color: var(--color-text);
 }
+
+.status-btn-active {
+  color: var(--color-accent, #5B9EFF);
+}

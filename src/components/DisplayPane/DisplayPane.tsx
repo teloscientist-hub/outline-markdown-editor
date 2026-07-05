@@ -2,6 +2,7 @@ import { useRef, useEffect, useLayoutEffect, useMemo, useCallback, useState } fr
 import { createPortal } from 'react-dom'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import remarkBreaks from 'remark-breaks'
 import TurndownService from 'turndown'
 import { useDocumentStore } from '../../store/documentStore'
 import { computeHiddenLines } from '../../model/documentModel'
@@ -36,8 +37,13 @@ td.addRule('passthrough-attrs', {
 export function DisplayPane() {
   const {
     content, headings, foldedIds, depthMode, headingsOnlyMode,
-    activeHeadingId, setActiveHeading, loadKey,
+    activeHeadingId, setActiveHeading, loadKey, hardLineBreaks,
   } = useDocumentStore()
+
+  const remarkPlugins = useMemo(
+    () => hardLineBreaks ? [remarkGfm, remarkBreaks] : [remarkGfm],
+    [hardLineBreaks]
+  )
 
   const scrollRef    = useRef<HTMLDivElement>(null)   // outer scroll container
   const shadowRef    = useRef<HTMLDivElement>(null)   // hidden ReactMarkdown render target (inner display-content div)
@@ -339,7 +345,7 @@ export function DisplayPane() {
           when the innerHTML is copied into the editable (which already has class="display-content"). */}
       <div style={{ display: 'none' }} aria-hidden="true">
         <div ref={shadowRef} className="display-content">
-          <ReactMarkdown remarkPlugins={[remarkGfm]} components={shadowComponents}>
+          <ReactMarkdown remarkPlugins={remarkPlugins} components={shadowComponents}>
             {visibleContent}
           </ReactMarkdown>
         </div>
