@@ -170,6 +170,10 @@ function getInitialDoc(): { content: string; filePath: string | null } {
     if (info) {
       if (info.type === 'file' && info.filePath && info.content != null)
         return { content: info.content, filePath: info.filePath }
+      // Opened from the Versions menu: a past backup's content, untitled —
+      // Save As is required to keep it, so it never overwrites anything.
+      if (info.type === 'unsaved' && info.content != null)
+        return { content: info.content, filePath: null }
       if (info.type === 'blank')
         return { content: '', filePath: null }
     }

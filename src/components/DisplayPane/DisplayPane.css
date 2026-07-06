@@ -124,3 +124,13 @@
 .display-editable:not(:focus) {
   cursor: text;
 }
+
+/* Read-only while folded/filtered — editing here would silently drop hidden
+   content, so it's disabled (see DisplayPane.tsx isFiltered) until the user
+   sets View: Show All / unfolds. */
+.display-readonly {
+  cursor: default;
+}
+.display-readonly .display-heading {
+  cursor: pointer;
+}

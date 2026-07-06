@@ -49,6 +49,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openLink:     (url) => ipcRenderer.invoke('link:open', url),
   showLinkMenu: (url) => ipcRenderer.invoke('link:context-menu', url),
 
+  // Debug log — structured, append-only diagnostic trail (see Help > Reveal Debug & Backup Folder)
+  debugLog: (event, data) => ipcRenderer.invoke('debug:log', { event, data }),
+
 
   removeAllListeners: (channel) => ipcRenderer.removeAllListeners(channel),
 });

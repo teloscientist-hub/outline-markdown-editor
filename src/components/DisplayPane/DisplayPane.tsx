@@ -45,6 +45,13 @@ export function DisplayPane() {
     [hardLineBreaks]
   )
 
+  // visibleContent (below) has folded/filtered lines physically removed from the
+  // string — it is NOT the full document. If we ever turndown()'d this pane's
+  // HTML back into the store while any of these are active, the hidden content
+  // would be silently deleted from the saved document. So editing is disabled
+  // whenever the pane isn't showing the complete document.
+  const isFiltered = foldedIds.size > 0 || depthMode !== 0 || headingsOnlyMode
+
   const scrollRef    = useRef<HTMLDivElement>(null)   // outer scroll container
   const shadowRef    = useRef<HTMLDivElement>(null)   // hidden ReactMarkdown render target (inner display-content div)
   const editableRef  = useRef<HTMLDivElement>(null)   // visible contenteditable div
@@ -110,16 +117,32 @@ export function DisplayPane() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visibleContent, layoutTrigger])
 
+  // visibleContent has folded/depth-filtered lines physically removed, so a
+  // turndown() writeback while filtered would silently delete that content
+  // from the document. Re-check live (not the render-time isFiltered) since
+  // these callbacks are memoized once and fold/depth state can change while
+  // a debounced writeback is still pending.
+  const isDocFiltered = useCallback(() => {
+    const s = useDocumentStore.getState()
+    return s.foldedIds.size > 0 || s.depthMode !== 0 || s.headingsOnlyMode
+  }, [])
+
   // ── Input handler: HTML → Markdown ────────────────────────────────────────
   const handleInput = useCallback(() => {
     const editable = editableRef.current
     if (!editable) return
     clearTimeout(inputTimerRef.current)
     inputTimerRef.current = setTimeout(() => {
+      if (isDocFiltered()) {
+        window.electronAPI?.debugLog('display:writeback-skipped-filtered', { source: 'input' })
+        return
+      }
+      const before = useDocumentStore.getState().content.length
       const markdown = td.turndown(editable.innerHTML)
+      window.electronAPI?.debugLog('display:writeback', { source: 'input', beforeChars: before, afterChars: markdown.length })
       useDocumentStore.getState().setContent(markdown)
     }, 400)
-  }, [])
+  }, [isDocFiltered])
 
   const handleBlur = useCallback(() => {
     isEditingRef.current = false
@@ -127,11 +150,18 @@ export function DisplayPane() {
     clearTimeout(inputTimerRef.current)
     const editable = editableRef.current
     if (!editable) return
+    if (isDocFiltered()) {
+      window.electronAPI?.debugLog('display:writeback-skipped-filtered', { source: 'blur' })
+      return
+    }
     const markdown = td.turndown(editable.innerHTML)
     if (markdown !== useDocumentStore.getState().content) {
+      window.electronAPI?.debugLog('display:writeback', {
+        source: 'blur', beforeChars: useDocumentStore.getState().content.length, afterChars: markdown.length,
+      })
       useDocumentStore.getState().setContent(markdown)
     }
-  }, [])
+  }, [isDocFiltered])
 
   // ── Paste handler: force a re-render so pasted markdown source is rendered ──
   // The default paste inserts text literally into the contentEditable. Without
@@ -144,10 +174,17 @@ export function DisplayPane() {
     setTimeout(() => {
       const editable = editableRef.current
       if (!editable) return
+      if (isDocFiltered()) {
+        window.electronAPI?.debugLog('display:writeback-skipped-filtered', { source: 'paste' })
+        return
+      }
       clearTimeout(inputTimerRef.current)
       const markdown = td.turndown(editable.innerHTML)
       pendingPasteCopyRef.current = true
       if (markdown !== useDocumentStore.getState().content) {
+        window.electronAPI?.debugLog('display:writeback', {
+          source: 'paste', beforeChars: useDocumentStore.getState().content.length, afterChars: markdown.length,
+        })
         // setContent → visibleContent changes → useLayoutEffect fires with pendingPasteCopyRef=true
         useDocumentStore.getState().setContent(markdown)
       } else {
@@ -155,7 +192,7 @@ export function DisplayPane() {
         setLayoutTrigger(n => n + 1)
       }
     }, 0)
-  }, [])
+  }, [isDocFiltered])
 
   // ── Format bubble ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -356,9 +393,10 @@ export function DisplayPane() {
         {/* Editable WYSIWYG surface — innerHTML managed by shadow copy + turndown */}
         <div
           ref={editableRef}
-          className="display-content display-editable"
-          contentEditable={true}
+          className={`display-content display-editable${isFiltered ? ' display-readonly' : ''}`}
+          contentEditable={!isFiltered}
           suppressContentEditableWarning={true}
+          title={isFiltered ? 'Editing is disabled here while folded or filtered (View: Show All to edit)' : undefined}
           onFocus={() => { isEditingRef.current = true }}
           onBlur={handleBlur}
           onInput={handleInput}

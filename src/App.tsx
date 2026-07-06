@@ -13,7 +13,7 @@ declare global {
   interface Window {
     electronAPI?: {
       initialInfo?: {
-        type: 'file' | 'blank' | 'readme'
+        type: 'file' | 'blank' | 'readme' | 'unsaved'
         filePath?: string | null
         content?: string | null
         prefs?: Record<string, unknown>
@@ -47,6 +47,7 @@ declare global {
         content: string; savedAt: string; originalPath: string | null
       } | null>
       removeAllListeners:  (channel: string) => void
+      debugLog: (event: string, data?: Record<string, unknown>) => Promise<void>
       openLink:     (url: string) => Promise<void>
       showLinkMenu: (url: string) => Promise<void>
     }
@@ -112,6 +113,9 @@ export function App() {
   }, [loadFile])
 
   const handleSave = useCallback(async () => {
+    window.electronAPI?.debugLog('save:attempt', {
+      filePath, chars: content.length, headings: useDocumentStore.getState().headings.length,
+    })
     const savedPath = await window.electronAPI?.saveFile(filePath, content)
     if (savedPath) {
       markSaved(savedPath)
@@ -121,6 +125,9 @@ export function App() {
   }, [filePath, content, markSaved])
 
   const handleSaveAs = useCallback(async () => {
+    window.electronAPI?.debugLog('save-as:attempt', {
+      filePath, chars: content.length, headings: useDocumentStore.getState().headings.length,
+    })
     const savedPath = await window.electronAPI?.saveFileAs(content)
     if (savedPath) {
       markSaved(savedPath)

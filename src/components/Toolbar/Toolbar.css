@@ -11,7 +11,8 @@
   user-select: none;
 }
 
-.toolbar * {
+.toolbar button,
+.toolbar select {
   -webkit-app-region: no-drag;
 }
 
