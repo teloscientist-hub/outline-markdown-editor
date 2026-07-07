@@ -4,6 +4,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
 import TurndownService from 'turndown'
+import { gfm } from 'turndown-plugin-gfm'
 import { useDocumentStore } from '../../store/documentStore'
 import { computeHiddenLines } from '../../model/documentModel'
 import { publishScroll, subscribeScroll } from '../../scrollSync'
@@ -14,6 +15,11 @@ import './DisplayPane.css'
 
 interface BubbleState { x: number; y: number; headingLevel: number }
 
+// YAML frontmatter at the top of the document (--- ... ---). Stripped for
+// display, and re-prepended on every writeback — otherwise any display-pane
+// edit would silently delete it from the saved document.
+const FRONTMATTER_RE = /^---\n[\s\S]*?\n---\n?/
+
 // ── Turndown instance (module-level, created once) ────────────────────────────
 const td = new TurndownService({
   headingStyle:    'atx',
@@ -22,6 +28,16 @@ const td = new TurndownService({
   hr:              '---',
   strongDelimiter: '**',
   emDelimiter:     '*',
+})
+// GFM support: without this, tables / task-list checkboxes / strikethrough
+// rendered by remark-gfm do not survive the HTML→Markdown round-trip and get
+// corrupted on every display-pane writeback.
+td.use(gfm)
+// The gfm plugin emits single-tilde ~strike~; emit standard ~~strike~~ instead
+// so the round-trip matches what users type.
+td.addRule('strikethrough-double-tilde', {
+  filter: ['del', 's'],
+  replacement: (content) => `~~${content}~~`,
 })
 // Ignore custom data attributes and class names — just convert the element
 td.addRule('passthrough-attrs', {
@@ -60,6 +76,7 @@ export function DisplayPane() {
   const suppressScrollRef  = useRef(false)
   const suppressTimerRef   = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const isEditingRef       = useRef(false)  // true while display pane is focused
+  const hasEditedRef       = useRef(false)  // true once the user actually typed/pasted since focus
   const inputTimerRef      = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const pendingPasteCopyRef = useRef(false)  // true when paste needs shadow→editable copy
 
@@ -68,19 +85,29 @@ export function DisplayPane() {
   const [layoutTrigger, setLayoutTrigger] = useState(0)
 
   // ── Strip YAML frontmatter for display (--- ... ---) ────────────────────────
-  const contentWithoutFrontmatter = useMemo(() => {
-    return content.replace(/^---\n[\s\S]*?\n---\n?/, '')
-  }, [content])
+  const frontmatter = useMemo(() => content.match(FRONTMATTER_RE)?.[0] ?? '', [content])
+  const contentWithoutFrontmatter = useMemo(
+    () => content.slice(frontmatter.length),
+    [content, frontmatter]
+  )
+  // Lines removed from the top by stripping. Store headings are parsed from the
+  // FULL content, so their line numbers must be shifted by this to index into
+  // the stripped text — otherwise folding hides the wrong lines here.
+  const fmLineCount = useMemo(() => {
+    if (!frontmatter) return 0
+    const parts = frontmatter.split('\n')
+    return frontmatter.endsWith('\n') ? parts.length - 1 : parts.length
+  }, [frontmatter])
 
   // ── Visible content (fold / depth filtering) ──────────────────────────────
   const visibleContent = useMemo(() => {
     if (foldedIds.size === 0 && depthMode === 0 && !headingsOnlyMode) return contentWithoutFrontmatter
-    const hidden = computeHiddenLines(contentWithoutFrontmatter, headings, foldedIds, depthMode, headingsOnlyMode)
+    const hidden = computeHiddenLines(content, headings, foldedIds, depthMode, headingsOnlyMode)
     return contentWithoutFrontmatter.split('\n')
-      .map((line, i) => (hidden.has(i) ? null : line))
+      .map((line, i) => (hidden.has(i + fmLineCount) ? null : line))
       .filter(l => l !== null)
       .join('\n')
-  }, [content, headings, foldedIds, depthMode, headingsOnlyMode])
+  }, [content, contentWithoutFrontmatter, fmLineCount, headings, foldedIds, depthMode, headingsOnlyMode])
 
   // ── Shadow → editable copy (runs synchronously before paint) ─────────────
   // Only updates the editable div when content changed from outside
@@ -127,10 +154,20 @@ export function DisplayPane() {
     return s.foldedIds.size > 0 || s.depthMode !== 0 || s.headingsOnlyMode
   }, [])
 
+  // Rebuild full-document markdown from the editable HTML. The pane renders
+  // frontmatter-STRIPPED content, so the stripped frontmatter must be
+  // re-prepended here — otherwise every display-pane edit would silently
+  // delete it from the document.
+  const editableToMarkdown = useCallback((html: string) => {
+    const fm = useDocumentStore.getState().content.match(FRONTMATTER_RE)?.[0] ?? ''
+    return fm + td.turndown(html)
+  }, [])
+
   // ── Input handler: HTML → Markdown ────────────────────────────────────────
   const handleInput = useCallback(() => {
     const editable = editableRef.current
     if (!editable) return
+    hasEditedRef.current = true
     clearTimeout(inputTimerRef.current)
     inputTimerRef.current = setTimeout(() => {
       if (isDocFiltered()) {
@@ -138,11 +175,11 @@ export function DisplayPane() {
         return
       }
       const before = useDocumentStore.getState().content.length
-      const markdown = td.turndown(editable.innerHTML)
+      const markdown = editableToMarkdown(editable.innerHTML)
       window.electronAPI?.debugLog('display:writeback', { source: 'input', beforeChars: before, afterChars: markdown.length })
       useDocumentStore.getState().setContent(markdown)
     }, 400)
-  }, [isDocFiltered])
+  }, [isDocFiltered, editableToMarkdown])
 
   const handleBlur = useCallback(() => {
     isEditingRef.current = false
@@ -150,18 +187,22 @@ export function DisplayPane() {
     clearTimeout(inputTimerRef.current)
     const editable = editableRef.current
     if (!editable) return
+    // No actual typing since focus → never rewrite the document through the
+    // lossy HTML→Markdown round-trip just because the pane was clicked.
+    if (!hasEditedRef.current) return
+    hasEditedRef.current = false
     if (isDocFiltered()) {
       window.electronAPI?.debugLog('display:writeback-skipped-filtered', { source: 'blur' })
       return
     }
-    const markdown = td.turndown(editable.innerHTML)
+    const markdown = editableToMarkdown(editable.innerHTML)
     if (markdown !== useDocumentStore.getState().content) {
       window.electronAPI?.debugLog('display:writeback', {
         source: 'blur', beforeChars: useDocumentStore.getState().content.length, afterChars: markdown.length,
       })
       useDocumentStore.getState().setContent(markdown)
     }
-  }, [isDocFiltered])
+  }, [isDocFiltered, editableToMarkdown])
 
   // ── Paste handler: force a re-render so pasted markdown source is rendered ──
   // The default paste inserts text literally into the contentEditable. Without
@@ -170,6 +211,7 @@ export function DisplayPane() {
   // re-renders the shadow, then pendingPasteCopyRef=true lets the layout effect
   // copy the formatted shadow HTML back into the editable.
   const handlePaste = useCallback(() => {
+    hasEditedRef.current = true
     // Wait one tick so the default paste content is in the editable
     setTimeout(() => {
       const editable = editableRef.current
@@ -179,7 +221,7 @@ export function DisplayPane() {
         return
       }
       clearTimeout(inputTimerRef.current)
-      const markdown = td.turndown(editable.innerHTML)
+      const markdown = editableToMarkdown(editable.innerHTML)
       pendingPasteCopyRef.current = true
       if (markdown !== useDocumentStore.getState().content) {
         window.electronAPI?.debugLog('display:writeback', {
@@ -192,7 +234,7 @@ export function DisplayPane() {
         setLayoutTrigger(n => n + 1)
       }
     }, 0)
-  }, [isDocFiltered])
+  }, [isDocFiltered, editableToMarkdown])
 
   // ── Format bubble ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -337,6 +379,7 @@ export function DisplayPane() {
     // stuck true — which would prevent the useLayoutEffect from copying the new
     // content into the editable. Always reset it on file load.
     isEditingRef.current = false
+    hasEditedRef.current = false
     pendingPasteCopyRef.current = false
     clearTimeout(inputTimerRef.current)
     if (!scrollRef.current) return
@@ -397,7 +440,7 @@ export function DisplayPane() {
           contentEditable={!isFiltered}
           suppressContentEditableWarning={true}
           title={isFiltered ? 'Editing is disabled here while folded or filtered (View: Show All to edit)' : undefined}
-          onFocus={() => { isEditingRef.current = true }}
+          onFocus={() => { isEditingRef.current = true; hasEditedRef.current = false }}
           onBlur={handleBlur}
           onInput={handleInput}
           onClick={handleClick}

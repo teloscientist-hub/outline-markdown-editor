@@ -14,8 +14,19 @@ export function parseHeadings(content: string): HeadingNode[] {
   const lines = content.split('\n')
   const flat: HeadingNode[] = []
 
-  // First pass: collect all headings with lineStart
+  // First pass: collect all headings with lineStart.
+  // Lines inside fenced code blocks (``` / ~~~) are NOT headings — treating
+  // them as headings lets outline move/drag operations split code blocks apart.
+  let inFence = false
+  let fenceChar = ''
   for (let i = 0; i < lines.length; i++) {
+    const fence = lines[i].match(/^\s{0,3}(`{3,}|~{3,})/)
+    if (fence) {
+      if (!inFence) { inFence = true; fenceChar = fence[1][0] }
+      else if (fence[1][0] === fenceChar) inFence = false
+      continue
+    }
+    if (inFence) continue
     const m = lines[i].match(/^(#{1,6})\s+(.+)$/)
     if (m) {
       flat.push({
@@ -159,7 +170,17 @@ export function computeHiddenLines(
 
   // Headings-only mode: hide all non-heading lines and headings beyond depthMode
   if (headingsOnlyMode) {
+    let inFence = false
+    let fenceChar = ''
     for (let i = 0; i < lines.length; i++) {
+      const fence = lines[i].match(/^\s{0,3}(`{3,}|~{3,})/)
+      if (fence) {
+        if (!inFence) { inFence = true; fenceChar = fence[1][0] }
+        else if (fence[1][0] === fenceChar) inFence = false
+        hidden.add(i)
+        continue
+      }
+      if (inFence) { hidden.add(i); continue }  // "# fake heading" inside a code fence is body, not a heading
       const m = lines[i].match(/^(#{1,6})\s/)
       if (!m) {
         hidden.add(i)  // hide body text
