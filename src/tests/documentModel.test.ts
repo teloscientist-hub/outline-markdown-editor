@@ -10,6 +10,9 @@ import {
   moveSectionVertical,
   getHeadingAtLine,
   changeHeadingLevel,
+  extractSectionsMarkdown,
+  deleteSections,
+  insertMarkdownAfterSection,
 } from '../model/documentModel'
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -603,5 +606,120 @@ describe('moveSectionVertical', () => {
     const headings = parseHeadings(md)
     const result = moveSectionVertical(md, headings, 'bad-id', 'up')
     expect(result).toBeNull()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// extractSectionsMarkdown
+// ─────────────────────────────────────────────────────────────────────────────
+describe('extractSectionsMarkdown', () => {
+  it('returns empty string for empty selection', () => {
+    const md = '# A\n# B'
+    const headings = parseHeadings(md)
+    expect(extractSectionsMarkdown(md, headings, [])).toBe('')
+  })
+
+  it('extracts a single section with its body', () => {
+    const md = '# A\nbody a\n# B\nbody b'
+    const headings = parseHeadings(md)
+    const result = extractSectionsMarkdown(md, headings, [headings[0].id])
+    expect(result).toBe('# A\nbody a')
+  })
+
+  it('extracts a section together with its subtree', () => {
+    const md = '# A\n## A1\ntext\n# B'
+    const headings = parseHeadings(md)
+    // Selecting only A should carry A1 (its child) too
+    const result = extractSectionsMarkdown(md, headings, [headings[0].id])
+    expect(result).toBe('# A\n## A1\ntext')
+  })
+
+  it('joins multiple roots in document order separated by a blank line', () => {
+    const md = '# A\n# B\n# C'
+    const headings = parseHeadings(md)
+    // Pass ids out of order — output must still be document order A then C
+    const result = extractSectionsMarkdown(md, headings, [headings[2].id, headings[0].id])
+    expect(result).toBe('# A\n\n# C')
+  })
+
+  it('does not double-emit a child that is also selected (child is not a root)', () => {
+    const md = '# A\n## A1\n# B'
+    const headings = parseHeadings(md)
+    const result = extractSectionsMarkdown(md, headings, [headings[0].id, headings[1].id])
+    expect(result).toBe('# A\n## A1')
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// deleteSections
+// ─────────────────────────────────────────────────────────────────────────────
+describe('deleteSections', () => {
+  it('returns content unchanged for empty selection', () => {
+    const md = '# A\n# B'
+    const headings = parseHeadings(md)
+    expect(deleteSections(md, headings, [])).toBe(md)
+  })
+
+  it('deletes a single section and its body', () => {
+    const md = '# A\nbody a\n# B\nbody b'
+    const headings = parseHeadings(md)
+    const result = deleteSections(md, headings, [headings[0].id])
+    expect(result).toBe('# B\nbody b')
+  })
+
+  it('deletes a section together with its subtree', () => {
+    const md = '# A\n## A1\ntext\n# B'
+    const headings = parseHeadings(md)
+    const result = deleteSections(md, headings, [headings[0].id])
+    expect(result).toBe('# B')
+  })
+
+  it('deletes multiple non-contiguous roots', () => {
+    const md = '# A\n# B\n# C'
+    const headings = parseHeadings(md)
+    const result = deleteSections(md, headings, [headings[0].id, headings[2].id])
+    expect(result).toBe('# B')
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// insertMarkdownAfterSection
+// ─────────────────────────────────────────────────────────────────────────────
+describe('insertMarkdownAfterSection', () => {
+  it('returns content unchanged for empty text', () => {
+    const md = '# A'
+    const headings = parseHeadings(md)
+    expect(insertMarkdownAfterSection(md, headings, headings[0].id, '   ')).toBe(md)
+  })
+
+  it('inserts after the target section (past its subtree) with blank-line separation', () => {
+    const md = '# A\n## A1\n# B'
+    const headings = parseHeadings(md)
+    // Insert after A — must land after A1 (end of A's section), before B
+    const result = insertMarkdownAfterSection(md, headings, headings[0].id, '# NEW')
+    expect(result).toBe('# A\n## A1\n\n# NEW\n\n# B')
+  })
+
+  it('appends at end of document when afterId is null', () => {
+    const md = '# A\nbody'
+    const headings = parseHeadings(md)
+    const result = insertMarkdownAfterSection(md, headings, null, '# NEW')
+    expect(result).toBe('# A\nbody\n\n# NEW')
+  })
+
+  it('appends at end when afterId is unknown', () => {
+    const md = '# A'
+    const headings = parseHeadings(md)
+    const result = insertMarkdownAfterSection(md, headings, 'bad-id', '# NEW')
+    expect(result).toBe('# A\n\n# NEW')
+  })
+
+  it('round-trips with extractSectionsMarkdown (copy then paste elsewhere)', () => {
+    const md = '# A\nbody a\n# B\nbody b'
+    const headings = parseHeadings(md)
+    const copied = extractSectionsMarkdown(md, headings, [headings[0].id])
+    // Paste A's copy after B
+    const result = insertMarkdownAfterSection(md, headings, headings[1].id, copied)
+    expect(result).toBe('# A\nbody a\n# B\nbody b\n\n# A\nbody a')
   })
 })

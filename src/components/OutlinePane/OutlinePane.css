@@ -163,6 +163,16 @@
   border-color: var(--color-border);
 }
 .outline-sel-btn--clear:hover { color: var(--color-text); }
+.outline-sel-btn--danger {
+  color: #d9534f;
+  background: none;
+  border-color: rgba(217,83,79,0.4);
+}
+.outline-sel-btn--danger:hover {
+  color: #fff;
+  background: #d9534f;
+  filter: none;
+}
 
 /* Drag overlay sub-count badge */
 .outline-drag-sub-count {

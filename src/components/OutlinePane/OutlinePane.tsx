@@ -8,7 +8,7 @@ import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-
 import { CSS } from '@dnd-kit/utilities'
 import { useDocumentStore } from '../../store/documentStore'
 import type { HeadingNode } from '../../model/documentModel'
-import { isHeadingVisible, getDescendantIds } from '../../model/documentModel'
+import { isHeadingVisible, getDescendantIds, extractSectionsMarkdown } from '../../model/documentModel'
 import './OutlinePane.css'
 
 // ── Node component ────────────────────────────────────────────────────────────
@@ -90,7 +90,7 @@ export function OutlinePane() {
     toggleFold, setActiveHeading, moveSection,
     promoteSectionById, demoteSectionById,
     promoteMultipleById, demoteMultipleById,
-    moveSectionsById, undo,
+    moveSectionsById, deleteSectionsById, insertMarkdownAfter, undo,
   } = useDocumentStore()
 
   const [draggingId, setDraggingId]       = useState<string | null>(null)
@@ -163,6 +163,78 @@ export function OutlinePane() {
     }
   }, [activeHeadingId])
 
+  // ── Clipboard / delete helpers ──────────────────────────────────────────────
+  // The set of headings an action operates on: the multi-selection if there is
+  // one, otherwise the single focused/active heading. Each carries its subtree.
+  const getTargetIds = useCallback((): string[] => {
+    if (selectedIds.size > 0) return Array.from(selectedIds)
+    const focus = keyFocusId ?? activeHeadingId
+    return focus ? [focus] : []
+  }, [selectedIds, keyFocusId, activeHeadingId])
+
+  // Where a paste lands: after the last (lowest) heading in the current
+  // selection, else after the focused/active heading, else at document end (null).
+  const getPasteAnchorId = useCallback((): string | null => {
+    if (selectedIds.size > 0) {
+      let last: HeadingNode | null = null
+      for (const h of headings) {
+        if (selectedIds.has(h.id) && (!last || h.lineStart > last.lineStart)) last = h
+      }
+      return last?.id ?? null
+    }
+    return keyFocusId ?? activeHeadingId ?? null
+  }, [selectedIds, keyFocusId, activeHeadingId, headings])
+
+  const clearSelection = useCallback(() => {
+    setSelectedIds(new Set())
+    setAnchorId(null)
+  }, [])
+
+  // Prefer Electron's native clipboard (no renderer permission needed);
+  // fall back to the Web Clipboard API (e.g. browser dev server).
+  const writeClipboard = useCallback((text: string) => {
+    if (window.electronAPI?.clipboardWriteText) {
+      window.electronAPI.clipboardWriteText(text)
+    } else {
+      navigator.clipboard?.writeText(text).catch(() => { /* ignore */ })
+    }
+  }, [])
+
+  const readClipboard = useCallback((): Promise<string> => {
+    if (window.electronAPI?.clipboardReadText) {
+      return window.electronAPI.clipboardReadText()
+    }
+    return navigator.clipboard?.readText?.() ?? Promise.resolve('')
+  }, [])
+
+  const copyTargets = useCallback((ids: string[]) => {
+    const md = extractSectionsMarkdown(content, headings, ids)
+    if (md) writeClipboard(md)
+    return !!md
+  }, [content, headings, writeClipboard])
+
+  const cutTargets = useCallback((ids: string[]) => {
+    if (copyTargets(ids)) {
+      deleteSectionsById(ids)
+      clearSelection()
+      setKeyFocusId(null)
+    }
+  }, [copyTargets, deleteSectionsById, clearSelection])
+
+  const deleteTargets = useCallback((ids: string[]) => {
+    if (ids.length === 0) return
+    deleteSectionsById(ids)
+    clearSelection()
+    setKeyFocusId(null)
+  }, [deleteSectionsById, clearSelection])
+
+  const pasteAtAnchor = useCallback(() => {
+    const anchor = getPasteAnchorId()
+    readClipboard().then(text => {
+      if (text && text.trim()) insertMarkdownAfter(anchor, text)
+    }).catch(() => { /* clipboard read denied — ignore */ })
+  }, [getPasteAnchorId, insertMarkdownAfter, readClipboard])
+
   // ── Click handler ─────────────────────────────────────────────────────────
   const handleNodeClick = useCallback((id: string, e: MouseEvent) => {
     // Synchronously move keyboard focus to the pane div.
@@ -205,6 +277,9 @@ export function OutlinePane() {
     const ids = visibleHeadings.map(h => h.id)
     const currentId  = keyFocusId ?? activeHeadingId
     const currentIdx = currentId ? ids.indexOf(currentId) : -1
+    // True when the event originates from the search box — never treat those
+    // keystrokes as outline commands (else Backspace would delete sections).
+    const onInput = (e.target as HTMLElement)?.tagName === 'INPUT'
 
     switch (e.key) {
       case 'ArrowDown': {
@@ -263,22 +338,39 @@ export function OutlinePane() {
       }
       case 'c':
       case 'C': {
-        if (e.metaKey || e.ctrlKey) {
+        // Copy selected sections (or the focused one) as Markdown to the clipboard
+        if ((e.metaKey || e.ctrlKey) && !onInput) {
           e.preventDefault()
-          if (selectedIds.size > 0) {
-            // Copy full markdown for all selected sections (each carrying its subtree)
-            const idSet = new Set(selectedIds)
-            const roots = headings
-              .filter(h => idSet.has(h.id) && (!h.parentId || !idSet.has(h.parentId)))
-              .sort((a, b) => a.lineStart - b.lineStart)
-            const docLines = content.split('\n')
-            const blockLines: string[] = []
-            for (const root of roots) {
-              if (blockLines.length > 0) blockLines.push('')
-              blockLines.push(...docLines.slice(root.lineStart, root.sectionEnd + 1))
-            }
-            navigator.clipboard.writeText(blockLines.join('\n'))
-          }
+          copyTargets(getTargetIds())
+        }
+        break
+      }
+      case 'x':
+      case 'X': {
+        // Cut: copy to clipboard, then remove the sections
+        if ((e.metaKey || e.ctrlKey) && !onInput) {
+          e.preventDefault()
+          cutTargets(getTargetIds())
+        }
+        break
+      }
+      case 'v':
+      case 'V': {
+        // Paste clipboard Markdown after the focused/last-selected section
+        if ((e.metaKey || e.ctrlKey) && !onInput) {
+          e.preventDefault()
+          pasteAtAnchor()
+        }
+        break
+      }
+      case 'Delete':
+      case 'Backspace': {
+        // Delete selected sections (or the focused one). Never while typing in search.
+        if (onInput) break
+        const targets = getTargetIds()
+        if (targets.length > 0) {
+          e.preventDefault()
+          deleteTargets(targets)
         }
         break
       }
@@ -321,6 +413,7 @@ export function OutlinePane() {
     toggleFold, setActiveHeading, undo,
     promoteSectionById, demoteSectionById,
     promoteMultipleById, demoteMultipleById,
+    getTargetIds, copyTargets, cutTargets, deleteTargets, pasteAtAnchor,
   ])
 
   // ── Drag ─────────────────────────────────────────────────────────────────
@@ -399,6 +492,21 @@ export function OutlinePane() {
               title="Demote selected  (Tab)"
               onClick={() => demoteMultipleById(Array.from(selectedIds))}
             >H+</button>
+            <button
+              className="outline-sel-btn"
+              title="Copy selected  (⌘C)"
+              onClick={() => copyTargets(Array.from(selectedIds))}
+            >Copy</button>
+            <button
+              className="outline-sel-btn"
+              title="Cut selected  (⌘X)"
+              onClick={() => cutTargets(Array.from(selectedIds))}
+            >Cut</button>
+            <button
+              className="outline-sel-btn outline-sel-btn--danger"
+              title="Delete selected  (Delete)"
+              onClick={() => deleteTargets(Array.from(selectedIds))}
+            >Del</button>
             <button
               className="outline-sel-btn outline-sel-btn--clear"
               title="Clear selection  (Esc)"

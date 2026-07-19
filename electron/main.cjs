@@ -686,6 +686,12 @@ ipcMain.handle('debug:log', (_event, { event: name, data }) => {
 
 ipcMain.handle('fs:read', (_, filePath) => fs.readFileSync(filePath, 'utf-8'));
 
+// ── Clipboard (native, no renderer permission needed) ──────────────────────────
+// Used by the Outline pane's cut/copy/paste so paste works regardless of the
+// renderer's navigator.clipboard permission state.
+ipcMain.handle('clipboard:read-text',  () => require('electron').clipboard.readText());
+ipcMain.handle('clipboard:write-text', (_, text) => { require('electron').clipboard.writeText(text ?? ''); });
+
 // ── Link handling ─────────────────────────────────────────────────────────────
 ipcMain.handle('link:open', (_, url) => shell.openExternal(url));
 

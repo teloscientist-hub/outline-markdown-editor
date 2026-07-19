@@ -44,7 +44,8 @@ src/
 
   components/
     WorkspaceLayout.tsx/css   # Three-pane layout with resize handles
-    OutlinePane/              # Heading tree, drag-to-reorder, multi-select, Aa toggle
+    OutlinePane/              # Heading tree, drag-to-reorder, multi-select, Aa toggle,
+                              #   section copy/cut/paste/delete (⌘C ⌘X ⌘V Del)
     MarkdownPane/             # CodeMirror 6 editor with custom syntax colours
     DisplayPane/              # WYSIWYG contentEditable preview pane
     Toolbar/                  # Top toolbar (new, open, save, format actions)
@@ -148,16 +149,24 @@ Built artifacts go to `release/`. The folder is gitignored.
 
 ## Known Quirks
 
-### Path history note (2026-05-26 reorg)
-This project previously lived under an iCloud folder named **`mark's Mac Studio`** which contained a curly apostrophe (U+2019). That made hardcoded paths annoying: scripts needed `$'\xe2\x80\x99'` in bash or a `’` Unicode escape in Python.
-
-After the 2026-05-26 reorg the project now lives at:
+### Path history note (2026-07-07 off-cloud migration)
+**Current location — the project lives off-cloud at:**
 
 ```
-/Users/mark/Library/CloudStorage/Dropbox-BPTNB/mark lewis/_GPT Meta/App Development/OutlineMarkdown
+/Users/mark/A/code/OutlineMarkdown
 ```
 
-The new path is **ASCII-clean** — no apostrophe-handling workarounds are needed. The previous workaround notes (bash `$'\xe2\x80\x99'` injection, Python heredoc tricks) have been removed because they no longer apply. If you still see scripts using those patterns, they're stale and can be simplified.
+Its git directory is separate (working tree in `A/code`, repo in `A/code/gits`):
+
+```
+/Users/mark/A/code/gits/Outline-Markdown-Editor.git
+```
+
+`.git` in the project root is a pointer *file* (`gitdir: …`), not a directory — so run git from the working tree as normal.
+
+**Why:** on 2026-07-07 all App Development code was moved out of the Dropbox-synced tree into `A/code`. Node projects must never live in the synced tree — `node_modules` floods sync with tens of thousands of files and embedded `.git` dirs corrupt there.
+
+Earlier history: the project originally lived under an iCloud folder named **`mark's Mac Studio`** (curly apostrophe, U+2019), which required `$'\xe2\x80\x99'` in bash or a `’` escape in Python; a 2026-05-26 reorg moved it to a Dropbox path, and the 2026-07-07 migration moved it to its current off-cloud home. All current paths are **ASCII-clean** — no apostrophe-handling workarounds are needed. If you still see scripts using those patterns, or referencing the old Dropbox/iCloud paths, they're stale.
 
 ---
 

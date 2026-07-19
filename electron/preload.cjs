@@ -12,6 +12,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveFile:   (filePath, content) => ipcRenderer.invoke('dialog:save', { filePath, content }),
   saveFileAs: (content, defaultPath) => ipcRenderer.invoke('dialog:save-as', { content, defaultPath }),
   readFile:   (filePath) => ipcRenderer.invoke('fs:read', filePath),
+
+  // Native clipboard (used by Outline pane cut/copy/paste)
+  clipboardReadText:  () => ipcRenderer.invoke('clipboard:read-text'),
+  clipboardWriteText: (text) => ipcRenderer.invoke('clipboard:write-text', text),
   statFile:   (filePath) => ipcRenderer.invoke('fs:stat', filePath),
 
   // Notify main of the current file path

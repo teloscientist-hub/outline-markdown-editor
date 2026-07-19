@@ -439,6 +439,86 @@ export function moveMultipleSections(
   ].join('\n')
 }
 
+// ── Clipboard / section editing (copy · cut · paste · delete) ──────────────
+//
+// All three helpers below operate on a SET of selected heading ids and treat
+// each "root" (a selected heading whose parent is NOT also selected) as
+// carrying its full subtree (lineStart → sectionEnd) — identical to the
+// grouping rule used by moveMultipleSections, so copy/cut/delete stay
+// consistent with drag-move.
+
+// Return just the root headings of a selection, sorted in document order.
+function selectionRoots(headings: HeadingNode[], ids: string[]): HeadingNode[] {
+  const idSet = new Set(ids)
+  return headings
+    .filter(h => idSet.has(h.id) && (!h.parentId || !idSet.has(h.parentId)))
+    .sort((a, b) => a.lineStart - b.lineStart)
+}
+
+// Build the combined Markdown for a set of selected sections (each root carries
+// its whole subtree). Roots are emitted in document order, separated by a blank
+// line. Returns '' if nothing resolves.
+export function extractSectionsMarkdown(
+  content: string,
+  headings: HeadingNode[],
+  ids: string[]
+): string {
+  const roots = selectionRoots(headings, ids)
+  if (roots.length === 0) return ''
+  const lines = content.split('\n')
+  const blocks: string[] = []
+  for (const root of roots) {
+    blocks.push(lines.slice(root.lineStart, root.sectionEnd + 1).join('\n'))
+  }
+  return blocks.join('\n\n')
+}
+
+// Remove a set of selected sections (each root carries its whole subtree).
+// Returns the new content. No-op (returns content unchanged) if nothing resolves.
+export function deleteSections(
+  content: string,
+  headings: HeadingNode[],
+  ids: string[]
+): string {
+  const roots = selectionRoots(headings, ids)
+  if (roots.length === 0) return content
+  const remove = new Set<number>()
+  for (const root of roots) {
+    for (let i = root.lineStart; i <= root.sectionEnd; i++) remove.add(i)
+  }
+  const lines = content.split('\n')
+  return lines.filter((_, i) => !remove.has(i)).join('\n')
+}
+
+// Insert raw Markdown text immediately AFTER the given heading's full section
+// (or at the end of the document when afterId is null / not found). A blank line
+// is ensured on both sides of the inserted block so headings parse cleanly.
+export function insertMarkdownAfterSection(
+  content: string,
+  headings: HeadingNode[],
+  afterId: string | null,
+  text: string
+): string {
+  const clean = text.replace(/^\n+/, '').replace(/\n+$/, '')
+  if (!clean.trim()) return content
+
+  const lines = content.split('\n')
+  const after = afterId ? getHeading(headings, afterId) : null
+  const insertAt = after ? after.sectionEnd + 1 : lines.length
+
+  const before = lines.slice(0, insertAt)
+  const rest = lines.slice(insertAt)
+  const block = clean.split('\n')
+
+  const out: string[] = [...before]
+  if (out.length && out[out.length - 1].trim() !== '') out.push('')
+  out.push(...block)
+  if (rest.length && rest[0].trim() !== '') out.push('')
+  out.push(...rest)
+
+  return out.join('\n')
+}
+
 // Toggle fold for the heading at or containing the given line index.
 export function getHeadingForLine(headings: HeadingNode[], lineIndex: number): HeadingNode | null {
   // First check if the line IS a heading

@@ -22,6 +22,8 @@ declare global {
       saveFile:    (filePath: string | null, content: string) => Promise<string | null>
       saveFileAs:  (content: string, defaultPath?: string) => Promise<string | null>
       readFile:    (filePath: string) => Promise<string>
+      clipboardReadText:  () => Promise<string>
+      clipboardWriteText: (text: string) => Promise<void>
       statFile:    (filePath: string) => Promise<{ created: string; modified: string; size: number } | null>
       setFilePath: (filePath: string | null) => Promise<void>
       getPreferences: () => Promise<{ startup: string; recentFiles?: string[] }>

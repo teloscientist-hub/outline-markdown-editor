@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { subscribeWithSelector } from 'zustand/middleware'
 import type { HeadingNode } from '../model/documentModel'
-import { parseHeadings, moveSection, changeSectionLevel, moveSectionVertical, changeMultipleSectionLevels, moveMultipleSections } from '../model/documentModel'
+import { parseHeadings, moveSection, changeSectionLevel, moveSectionVertical, changeMultipleSectionLevels, moveMultipleSections, deleteSections, insertMarkdownAfterSection } from '../model/documentModel'
 
 const SAMPLE_DOCUMENT = `# Welcome to Outline Markdown Editor
 
@@ -144,6 +144,8 @@ export interface DocumentState {
   promoteMultipleById: (ids: string[]) => void
   demoteMultipleById: (ids: string[]) => void
   moveSectionsById: (fromIds: string[], toId: string, placement: 'before' | 'after') => void
+  deleteSectionsById: (ids: string[]) => void
+  insertMarkdownAfter: (afterId: string | null, text: string) => void
 
   // Undo history (for outline operations — typing undo is handled by CodeMirror)
   history: string[]
@@ -441,6 +443,33 @@ export const useDocumentStore = create<DocumentState>()(
       get().pushHistory()
       const { content, headings } = get()
       const newContent = moveMultipleSections(content, headings, fromIds, toId, placement)
+      set({
+        content: newContent,
+        headings: parseHeadings(newContent),
+        isDirty: true,
+      })
+    },
+
+    deleteSectionsById: (ids) => {
+      if (ids.length === 0) return
+      const { content, headings } = get()
+      const newContent = deleteSections(content, headings, ids)
+      if (newContent === content) return
+      get().pushHistory()
+      set({
+        content: newContent,
+        headings: parseHeadings(newContent),
+        isDirty: true,
+        activeHeadingId: null,
+      })
+    },
+
+    insertMarkdownAfter: (afterId, text) => {
+      if (!text || !text.trim()) return
+      const { content, headings } = get()
+      const newContent = insertMarkdownAfterSection(content, headings, afterId, text)
+      if (newContent === content) return
+      get().pushHistory()
       set({
         content: newContent,
         headings: parseHeadings(newContent),
