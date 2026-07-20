@@ -183,7 +183,7 @@ const markEditTheme = EditorView.theme({
   '.cm-line-hidden': { display: 'none !important' },
   '.cm-fm-line':  { background: 'var(--me-fm-bg) !important' },
   '.cm-fm-delim': { color: 'var(--me-mark) !important', fontWeight: 'normal !important' },
-  '.cm-fm-key':   { color: 'var(--me-yaml-key) !important', fontWeight: 'normal !important' },
+  '.cm-fm-key':   { color: 'var(--me-yaml-key) !important', fontWeight: 'bold !important' },
   '.cm-fm-val':   { color: 'var(--me-text) !important', fontWeight: 'normal !important' },
 })
 
